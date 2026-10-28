@@ -1,0 +1,47 @@
+# Terraform state and generated files
+**/.terraform/*
+*.tfstate
+*.tfstate.*
+*.tfplan
+crash.log
+crash.*.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# Terraform variable files may contain secrets
+*.tfvars
+*.tfvars.json
+
+# Credentials and private keys
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+credentials
+.aws/
+secrets/
+
+# Ansible sensitive files
+ansible/inventory/*.ini
+ansible/inventory/*.json
+ansible/**/ec2_output.json
+ansible/**/inventory.ini
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# IDE and operating system files
+.vscode/
+.idea/
+*.code-workspace
+.DS_Store
+Thumbs.db
+!**/.env.example

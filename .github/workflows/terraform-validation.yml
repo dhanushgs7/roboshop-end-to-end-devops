@@ -1,0 +1,53 @@
+name: Terraform Validation
+
+on:
+  push:
+    paths:
+      - "terraform/**"
+      - ".github/workflows/terraform-validation.yml"
+  pull_request:
+    paths:
+      - "terraform/**"
+      - ".github/workflows/terraform-validation.yml"
+
+jobs:
+  validate:
+    name: Format and Validate Terraform
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        component:
+          - 00-vpc
+          - 10-sg
+          - 20-sg-rules
+          - 30-bastion
+          - 40-databases
+          - 50-backend-alb
+          - 60-catalogue
+          - 70-acm
+          - 80-frontend-alb
+          - 90-components
+          - 95-cdn
+          - 96-vpn
+
+    defaults:
+      run:
+        working-directory: terraform/${{ matrix.component }}
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      - name: Check Terraform formatting
+        run: terraform fmt -check -recursive
+
+      - name: Initialize Terraform without backend
+        run: terraform init -backend=false -input=false
+
+      - name: Validate Terraform configuration
+        run: terraform validate

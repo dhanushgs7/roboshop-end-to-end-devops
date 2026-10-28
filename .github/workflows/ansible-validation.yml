@@ -1,0 +1,35 @@
+name: Ansible Validation
+
+on:
+  push:
+    paths:
+      - "ansible/**"
+      - ".github/workflows/ansible-validation.yml"
+  pull_request:
+    paths:
+      - "ansible/**"
+      - ".github/workflows/ansible-validation.yml"
+
+jobs:
+  validate:
+    name: Check Ansible Playbooks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install Ansible
+        run: python -m pip install ansible-core
+
+      - name: Check playbook syntax
+        run: |
+          for file in ansible/playbooks/*.yaml; do
+            [ -f "$file" ] || continue
+            ansible-playbook --syntax-check "$file"
+          done

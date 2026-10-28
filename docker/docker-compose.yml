@@ -1,0 +1,109 @@
+
+name: roboshop
+
+services:
+  mongodb:
+    build: ./mongodb
+    image: joindevops/mongodb:v1
+    container_name: mongodb
+
+  catalogue:
+    build: ./catalogue
+    image: joindevops/catalogue:v1
+    container_name: catalogue
+    depends_on:
+      - mongodb
+
+  frontend:
+    build: ./frontend
+    image: joindevops/frontend:v1
+    container_name: frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - catalogue
+      - user
+      - cart
+      - shipping
+      - payment
+
+  user:
+    build: ./user
+    image: joindevops/user:v1
+    container_name: user
+    environment:
+      MONGO: true
+      REDIS_URL: "redis://redis:6379"
+      MONGO_URL: "mongodb://mongodb:27017/users"
+    depends_on:
+      - redis
+      - mongodb
+
+  cart:
+    build: ./cart
+    image: joindevops/cart:v1
+    container_name: cart
+    environment:
+      REDIS_HOST: redis
+      CATALOGUE_HOST: catalogue
+      CATALOGUE_PORT: 8080
+    depends_on:
+      - redis
+      - catalogue
+
+  shipping:
+    build: ./shipping
+    image: joindevops/shipping:v1
+    container_name: shipping
+    environment:
+      CART_ENDPOINT: "cart:8080"
+      DB_HOST: mysql
+      DB_USERNAME: shipping
+      DB_PASSWORD: "${DB_PASSWORD:?Set DB_PASSWORD in .env}"
+    depends_on:
+      - mysql
+      - cart
+
+  payment:
+    build: ./payment
+    image: joindevops/payment:v1
+    container_name: payment
+    environment:
+      CART_HOST: cart
+      CART_PORT: 8080
+      USER_HOST: user
+      USER_PORT: 8080
+      AMQP_HOST: rabbitmq
+      AMQP_USER: roboshop
+      AMQP_PASS: "${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}"
+    depends_on:
+      - cart
+      - user
+      - rabbitmq
+
+  redis:
+    image: redis:7
+    container_name: redis
+
+  mysql:
+    image: joindevops/mysql:v1
+    build: ./mysql
+    container_name: mysql
+    command: --mysql-native-password=ON --innodb-lock_wait_timeout=120
+    environment:
+      MYSQL_ROOT_PASSWORD: "${MYSQL_ROOT_PASSWORD:?Set MYSQL_ROOT_PASSWORD in .env}"
+      MYSQL_DATABASE: cities
+      MYSQL_USER: shipping
+      MYSQL_PASSWORD: "${DB_PASSWORD:?Set DB_PASSWORD in .env}"
+
+  rabbitmq:
+    image: rabbitmq:3
+    container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: roboshop
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}"
+
+networks:
+  default:
+    name: roboshop
+    driver: bridge

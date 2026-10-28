@@ -1,0 +1,78 @@
+
+#!/bin/bash
+set -euo pipefail
+umask 077
+
+SCRIPTS="/usr/local/openvpn_as/scripts"
+USERNAME="openvpn"
+PARAMETER_NAME="${password_parameter}"
+if ! command -v aws >/dev/null 2>&1; then
+  echo "ERROR: AWS CLI is not installed" >&2
+  exit 1
+fi
+
+# Retrieve the password from SSM Parameter Store.
+# Do not print or log the secret.
+OPENVPN_ADMIN_PASSWORD=""
+
+for attempt in $(seq 1 30); do
+  if OPENVPN_ADMIN_PASSWORD="$(aws ssm get-parameter \
+    --name "$PARAMETER_NAME" \
+    --with-decryption \
+    --query 'Parameter.Value' \
+    --output text 2>/dev/null)"; then
+    break
+  fi
+
+  OPENVPN_ADMIN_PASSWORD=""
+  sleep 10
+done
+
+if [ -z "$OPENVPN_ADMIN_PASSWORD" ]; then
+  echo "ERROR: Could not retrieve VPN admin password from SSM" >&2
+  exit 1
+fi
+
+PASSWORD="$OPENVPN_ADMIN_PASSWORD"
+unset OPENVPN_ADMIN_PASSWORD
+PASSWORD="$OPENVPN_ADMIN_PASSWORD"
+unset OPENVPN_ADMIN_PASSWORD
+
+# Wait until Access Server UI is ready.
+for attempt in $(seq 1 60); do
+  if curl -ks https://127.0.0.1:943/ >/dev/null 2>&1; then
+    break
+  fi
+
+  if [ "$attempt" -eq 60 ]; then
+    echo "ERROR: OpenVPN Access Server UI did not become ready" >&2
+    exit 1
+  fi
+
+  sleep 5
+done
+
+# Accept license and configure the admin user.
+"$SCRIPTS/sacli" --key 'eula_accepted' --value 'true' ConfigPut
+"$SCRIPTS/sacli" --user "$USERNAME" --new_pass "$PASSWORD" SetLocalPassword
+unset PASSWORD
+"$SCRIPTS/sacli" --user "$USERNAME" --key 'prop_superuser' --value 'true' UserPropPut
+
+# VPN port and protocol.
+"$SCRIPTS/sacli" --key 'vpn.server.port' --value '1194' ConfigPut
+"$SCRIPTS/sacli" --key 'vpn.server.protocol' --value 'udp' ConfigPut
+
+# DNS configuration.
+"$SCRIPTS/sacli" --key 'vpn.client.dns.server_auto' --value 'true' ConfigPut
+"$SCRIPTS/sacli" --key 'cs.prof.defaults.dns.0' --value '8.8.8.8' ConfigPut
+"$SCRIPTS/sacli" --key 'cs.prof.defaults.dns.1' --value '1.1.1.1' ConfigPut
+
+# Route client traffic through the VPN.
+"$SCRIPTS/sacli" --key 'vpn.client.routing.reroute_gw' --value 'true' ConfigPut
+"$SCRIPTS/sacli" --key 'vpn.server.routing.gateway_access' --value 'true' ConfigPut
+
+systemctl restart openvpnas
+
+# Save and start.
+"$SCRIPTS/sacli" ConfigSync
+"$SCRIPTS/sacli" start
