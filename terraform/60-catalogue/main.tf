@@ -18,11 +18,11 @@ resource "terraform_data" "catalogue" {
   ]
 
   connection {
-  type        = "ssh"
-  user        = "ec2-user"
-  private_key = file(var.ssh_private_key_path)
-  host        = aws_instance.catalogue.private_ip
-}
+    type        = "ssh"
+    user        = "ec2-user"
+    private_key = file(var.ssh_private_key_path)
+    host        = aws_instance.catalogue.private_ip
+  }
 
   provisioner "file" {
     source      = "bootstrap.sh"
