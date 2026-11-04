@@ -55,6 +55,19 @@ pipeline {
             }
         }
 
+        stage('Shipping Unit Tests') {
+            steps {
+                sh '''
+                    set -eu
+                    docker run --rm \
+                      -v "$WORKSPACE/docker/shipping:/app" \
+                      -w /app \
+                      maven:3.9.9-eclipse-temurin-17 \
+                      mvn --batch-mode --no-transfer-progress test
+                '''
+            }
+        }
+
         stage('Validate Compose') {
             steps {
                 sh '''
