@@ -1,0 +1,21 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+scrape_configs:
+  - job_name: prometheus
+    static_configs:
+      - targets:
+          - prometheus.monitoring.svc.cluster.local:9090
+
+  - job_name: roboshop-cart
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - cart.roboshop.svc.cluster.local:8080
+
+  - job_name: roboshop-payment
+    metrics_path: /metrics
+    static_configs:
+      - targets:
+          - payment.roboshop.svc.cluster.local:8080
