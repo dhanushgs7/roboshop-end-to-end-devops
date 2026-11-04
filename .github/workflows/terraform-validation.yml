@@ -10,6 +10,9 @@ on:
       - "terraform/**"
       - ".github/workflows/terraform-validation.yml"
 
+permissions:
+  contents: read
+
 jobs:
   validate:
     name: Format and Validate Terraform
@@ -31,6 +34,7 @@ jobs:
           - 90-components
           - 95-cdn
           - 96-vpn
+          - 100-eks
 
     defaults:
       run:
