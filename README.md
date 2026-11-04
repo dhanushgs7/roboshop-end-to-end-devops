@@ -6,7 +6,7 @@ A source-built RoboShop microservices project that demonstrates the path from ap
 
 ## EKS deployment prerequisites
 
-The Jenkins EKS deployment stage is opt-in and expects a pre-provisioned cluster, EBS CSI driver with the `gp3-csi` StorageClass, AWS Load Balancer Controller, and Kubernetes credentials. Review [the EKS deployment prerequisites](docs/eks-deployment-prerequisites.md) before enabling `DEPLOY_TO_EKS`. Terraform provisioning is a separate reviewed operation; application pushes never run `terraform apply`.
+The Jenkins EKS deployment stage is opt-in and expects a pre-provisioned cluster, EBS CSI driver with the `gp3-csi` StorageClass, AWS Load Balancer Controller, and Kubernetes credentials. Before applying workloads, it verifies the required MySQL and RabbitMQ Secret names and keys and refuses to deploy if any trainer-owned image reference remains after rendering. Review [the EKS deployment prerequisites](docs/eks-deployment-prerequisites.md) before enabling `DEPLOY_TO_EKS`. Terraform provisioning is a separate reviewed operation; application pushes never run `terraform apply`.
 
 ## Architecture
 
