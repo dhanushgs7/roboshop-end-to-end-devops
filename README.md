@@ -56,7 +56,7 @@ Terraform provisions AWS infrastructure separately from application deployments.
 | `terraform/` | AWS infrastructure components, including `100-eks` |
 | `kubernetes/` | Kubernetes Deployments, Services, storage and ingress resources |
 | `docker/payment/tests/` | Payment service unit tests |\n| `docker/shipping/src/test/` | Shipping service controller unit tests |
-| `monitoring/` | Monitoring configuration (to be completed) |
+| `monitoring/` | Prometheus scrape configuration and Grafana dashboard starter |
 | `docs/` | Architecture and operational documentation |
 
 The application build contexts currently present under `docker/` are `catalogue`, `user`, `cart`, `payment`, `shipping`, `frontend`, `mongodb` and `mysql`. Redis and RabbitMQ use upstream images.
