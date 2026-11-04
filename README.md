@@ -4,6 +4,10 @@ A source-built RoboShop microservices project that demonstrates the path from ap
 
 > **Project rule:** Kubernetes deployments use plain YAML manifests with `kubectl`. Helm is intentionally not part of this project.
 
+## EKS deployment prerequisites
+
+The Jenkins EKS deployment stage is opt-in and expects a pre-provisioned cluster, EBS CSI driver with the `gp3-csi` StorageClass, AWS Load Balancer Controller, and Kubernetes credentials. Review [the EKS deployment prerequisites](docs/eks-deployment-prerequisites.md) before enabling `DEPLOY_TO_EKS`. Terraform provisioning is a separate reviewed operation; application pushes never run `terraform apply`.
+
 ## Architecture
 
 ```text
