@@ -28,7 +28,7 @@ GitHub
   |
   v
 Jenkins CI/CD
-  |-- unit / integration / regression tests
+  |-- payment service unit tests
   |-- Docker image build
   |-- Trivy vulnerability scan
   |-- push images to AWS ECR
@@ -55,7 +55,7 @@ Terraform provisions AWS infrastructure separately from application deployments.
 | `ansible/` | Ansible configuration and playbooks |
 | `terraform/` | AWS infrastructure components, including `100-eks` |
 | `kubernetes/` | Kubernetes Deployments, Services, storage and ingress resources |
-| `tests/` | Cross-service test suites (to be consolidated) |
+| `docker/payment/tests/` | Payment service unit tests |
 | `monitoring/` | Monitoring configuration (to be completed) |
 | `docs/` | Architecture and operational documentation |
 
@@ -117,10 +117,10 @@ No AWS infrastructure is created by the local Compose workflow or the CI validat
 ## Important implementation notes
 
 - Dispatch source was not present in the trainer RoboShop source repositories inspected for this project. It is not represented by fabricated application code; add it only when a legitimate source package is available.
-- The current application source and test suites are being consolidated and hardened. A green Compose health check is not a substitute for successful end-to-end checkout tests.
+- The payment service currently has an automated unit-test suite executed by GitHub Actions and Jenkins. Automated unit/integration/regression coverage for the Node.js services and full checkout flow remains to be added. A green Compose health check is not a substitute for successful end-to-end checkout tests.
 - The User service must hash passwords and must never return password values in API responses before production use.
 - Use a dedicated, least-privilege CI identity for ECR push and EKS deployment. Prefer short-lived AWS role credentials over static access keys.
 
 ## Project scope
 
-Git/GitHub, Jenkins, Docker, AWS ECR, Terraform, Ansible, AWS EKS, Kubernetes YAML, unit/integration/regression testing, Trivy, and Prometheus/Grafana monitoring. Helm is excluded by design.
+Git/GitHub, Jenkins, Docker, AWS ECR, Terraform, Ansible, AWS EKS, Kubernetes YAML, service testing, Trivy, and Prometheus/Grafana monitoring. Helm is excluded by design.
