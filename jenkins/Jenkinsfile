@@ -187,7 +187,25 @@ pipeline {
                     find "$RENDERED_MANIFESTS" -type f -name '*.yaml' \
                       -exec sed -i -E "s#image: joindevops/([^:]+):v1#image: $ECR_REGISTRY/$IMAGE_PREFIX/\\1:$IMAGE_TAG#g" {} +
 
+                    if grep -R -nE 'image: *joindevops/' "$RENDERED_MANIFESTS"; then
+                      echo "A trainer image reference remains in the rendered manifests; refusing deployment."
+                      exit 1
+                    fi
+
                     kubectl apply -f "$RENDERED_MANIFESTS/namespace.yaml"
+
+                    # Fail before changing workloads if required credentials are absent or incomplete.
+                    kubectl -n "$K8S_NAMESPACE" get secret mysql-credentials >/dev/null
+                    kubectl -n "$K8S_NAMESPACE" get secret rabbitmq-credentials >/dev/null
+                    for key in MYSQL_ROOT_PASSWORD MYSQL_PASSWORD DB_PASSWORD; do
+                      value="$(kubectl -n "$K8S_NAMESPACE" get secret mysql-credentials -o "jsonpath={.data.$key}")"
+                      test -n "$value" || { echo "mysql-credentials is missing key $key"; exit 1; }
+                    done
+                    for key in RABBITMQ_DEFAULT_USER RABBITMQ_DEFAULT_PASS; do
+                      value="$(kubectl -n "$K8S_NAMESPACE" get secret rabbitmq-credentials -o "jsonpath={.data.$key}")"
+                      test -n "$value" || { echo "rabbitmq-credentials is missing key $key"; exit 1; }
+                    done
+
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/database/"
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/redis.yaml"
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/rabbitmq.yaml"
