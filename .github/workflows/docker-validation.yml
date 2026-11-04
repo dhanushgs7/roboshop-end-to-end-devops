@@ -1,4 +1,4 @@
-name: Docker Compose Validation
+name: Docker Build and Security Validation
 
 on:
   push:
@@ -10,11 +10,13 @@ on:
       - "docker/**"
       - ".github/workflows/docker-validation.yml"
 
-jobs:
-  validate-compose:
-    name: Validate Docker Compose
-    runs-on: ubuntu-latest
+permissions:
+  contents: read
 
+jobs:
+  build-and-scan:
+    name: Build and scan application images
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -25,3 +27,38 @@ jobs:
       - name: Validate Compose configuration
         working-directory: docker
         run: docker compose --env-file .env.example config --quiet
+
+      - name: Build all application images from source
+        working-directory: docker
+        run: docker compose --env-file .env.example build
+
+      - name: Scan application images with Trivy
+        env:
+          IMAGE_TAG: joindevops
+        run: |
+          set -euo pipefail
+          mkdir -p trivy-reports
+          for service in catalogue user cart payment shipping frontend mongodb mysql; do
+            image="${IMAGE_TAG}/${service}:v1"
+            echo "Scanning ${image}"
+            docker run --rm \
+              -v /var/run/docker.sock:/var/run/docker.sock \
+              -v "${PWD}/trivy-reports:/reports" \
+              aquasec/trivy:0.58.2 image \
+              --scanners vuln \
+              --ignore-unfixed \
+              --severity HIGH,CRITICAL \
+              --exit-code 0 \
+              --format json \
+              --output "/reports/${service}.json" \
+              "${image}"
+          done
+
+      - name: Upload Trivy reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-image-reports
+          path: trivy-reports/
+          if-no-files-found: warn
+          retention-days: 14
