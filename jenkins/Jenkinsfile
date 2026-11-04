@@ -134,10 +134,8 @@ pipeline {
                     RENDERED_MANIFESTS="$(mktemp -d)"
                     trap 'rm -rf "$RENDERED_MANIFESTS"' EXIT
                     cp -R kubernetes/. "$RENDERED_MANIFESTS/"
-                    find "$RENDERED_MANIFESTS" -type f -name '*.yaml' -print0 |
-                      while IFS= read -r -d '' manifest; do
-                        sed -i -E "s#image: joindevops/([^:]+):v1#image: $ECR_REGISTRY/$IMAGE_PREFIX/\\1:$IMAGE_TAG#g" "$manifest"
-                      done
+                    find "$RENDERED_MANIFESTS" -type f -name '*.yaml' \
+                      -exec sed -i -E "s#image: joindevops/([^:]+):v1#image: $ECR_REGISTRY/$IMAGE_PREFIX/\\1:$IMAGE_TAG#g" {} +
 
                     kubectl apply -f "$RENDERED_MANIFESTS/namespace.yaml"
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/database/"
