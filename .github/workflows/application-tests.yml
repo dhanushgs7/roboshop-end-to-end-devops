@@ -4,10 +4,12 @@ on:
   push:
     paths:
       - "docker/payment/**"
+      - "docker/shipping/**"
       - ".github/workflows/application-tests.yml"
   pull_request:
     paths:
       - "docker/payment/**"
+      - "docker/shipping/**"
       - ".github/workflows/application-tests.yml"
 
 permissions:
@@ -36,3 +38,23 @@ jobs:
 
       - name: Run payment unit tests
         run: python -m unittest discover --start-directory tests --pattern "test_*.py" --verbose
+
+  shipping-tests:
+    name: Shipping service unit tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docker/shipping
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Run shipping unit tests
+        run: mvn --batch-mode --no-transfer-progress test
