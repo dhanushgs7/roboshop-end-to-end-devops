@@ -129,27 +129,29 @@ pipeline {
                     ECR_REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
                     aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER_NAME"
                     kubectl get nodes
-                    kubectl apply -f kubernetes/namespace.yaml
+                    # Render source-controlled image references to this build's ECR tag before applying.
+                    # This avoids briefly starting trainer-owned joindevops images.
+                    RENDERED_MANIFESTS="$(mktemp -d)"
+                    trap 'rm -rf "$RENDERED_MANIFESTS"' EXIT
+                    cp -R kubernetes/. "$RENDERED_MANIFESTS/"
+                    find "$RENDERED_MANIFESTS" -type f -name '*.yaml' -print0 |
+                      while IFS= read -r -d '' manifest; do
+                        sed -i -E "s#image: joindevops/([^:]+):v1#image: $ECR_REGISTRY/$IMAGE_PREFIX/\\1:$IMAGE_TAG#g" "$manifest"
+                      done
 
-                    # Credentials are provisioned out-of-band; never create secrets from source-controlled values.
-                    kubectl -n "$K8S_NAMESPACE" get secret mysql-credentials >/dev/null
-                    kubectl -n "$K8S_NAMESPACE" get secret rabbitmq-credentials >/dev/null
-                    kubectl get storageclass gp3-csi >/dev/null
-
-                    kubectl apply -n "$K8S_NAMESPACE" -f kubernetes/database/
-                    kubectl apply -n "$K8S_NAMESPACE" -f kubernetes/redis.yaml
-                    kubectl apply -n "$K8S_NAMESPACE" -f kubernetes/rabbitmq.yaml
-                    kubectl apply -n "$K8S_NAMESPACE" -f kubernetes/catalogue.yaml
-                    kubectl apply -n "$K8S_NAMESPACE" -f kubernetes/user.yaml
-                    kubectl apply -n "$K8S_NAMESPACE" -f kubernetes/cart.yaml
-                    kubectl apply -n "$K8S_NAMESPACE" -f kubernetes/shipping.yaml
-                    kubectl apply -n "$K8S_NAMESPACE" -f kubernetes/payment.yaml
-                    kubectl apply -n "$K8S_NAMESPACE" -f kubernetes/frontend.yaml
-                    kubectl apply -n "$K8S_NAMESPACE" -f kubernetes/frontend-ingress.yaml
+                    kubectl apply -f "$RENDERED_MANIFESTS/namespace.yaml"
+                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/database/"
+                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/redis.yaml"
+                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/rabbitmq.yaml"
+                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/catalogue.yaml"
+                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/user.yaml"
+                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/cart.yaml"
+                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/shipping.yaml"
+                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/payment.yaml"
+                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/frontend.yaml"
+                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/frontend-ingress.yaml"
 
                     for service in $SERVICES; do
-                      kubectl -n "$K8S_NAMESPACE" set image "deployment/$service" \
-                        "$service=$ECR_REGISTRY/$IMAGE_PREFIX/$service:$IMAGE_TAG"
                       kubectl -n "$K8S_NAMESPACE" rollout status "deployment/$service" --timeout=5m
                     done
                 '''
