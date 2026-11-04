@@ -49,7 +49,7 @@ Terraform provisions AWS infrastructure separately from application deployments.
 
 | Path | Purpose |
 |---|---|
-| `.github/workflows/` | GitHub Actions validation workflows |
+| `.github/workflows/` | GitHub Actions validation and source-check workflows |
 | `docker/` | Application source, Dockerfiles and Compose stack |
 | `jenkins/` | Jenkins pipeline and automation |
 | `ansible/` | Ansible configuration and playbooks |
@@ -117,7 +117,7 @@ No AWS infrastructure is created by the local Compose workflow or the CI validat
 ## Important implementation notes
 
 - Dispatch source was not present in the trainer RoboShop source repositories inspected for this project. It is not represented by fabricated application code; add it only when a legitimate source package is available.
-- Payment and shipping service unit tests are wired into GitHub Actions and Jenkins. Automated unit/integration/regression coverage for the Node.js services and full checkout flow remains to be added. A green Compose health check is not a substitute for successful end-to-end checkout tests.
+- Payment and shipping service unit tests are wired into GitHub Actions and Jenkins. Catalogue, User and Cart currently receive JavaScript syntax validation in CI; automated behavioral unit/integration/regression coverage for these Node.js services and the full checkout flow remains to be added. A green Compose health check is not a substitute for successful end-to-end checkout tests.
 - The User service must hash passwords and must never return password values in API responses before production use.
 - Use a dedicated, least-privilege CI identity for ECR push and EKS deployment. Prefer short-lived AWS role credentials over static access keys.
 
