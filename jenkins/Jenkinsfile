@@ -1,0 +1,169 @@
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+        buildDiscarder(logRotator(numToKeepStr: '20'))
+    }
+
+    parameters {
+        booleanParam(
+            name: 'PUSH_IMAGES',
+            defaultValue: false,
+            description: 'Push successfully built images to this AWS account ECR repositories'
+        )
+        booleanParam(
+            name: 'DEPLOY_TO_EKS',
+            defaultValue: false,
+            description: 'Deploy the pushed images to the configured EKS cluster'
+        )
+    }
+
+    environment {
+        AWS_REGION = 'us-east-1'
+        EKS_CLUSTER_NAME = 'roboshop-dev'
+        K8S_NAMESPACE = 'roboshop'
+        IMAGE_PREFIX = 'roboshop'
+        SERVICES = 'catalogue user cart payment shipping frontend mongodb mysql'
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                script {
+                    env.GIT_SHORT_SHA = sh(
+                        script: 'git rev-parse --short=8 HEAD',
+                        returnStdout: true
+                    ).trim()
+                    env.IMAGE_TAG = "${BUILD_NUMBER}-${GIT_SHORT_SHA}"
+                }
+            }
+        }
+
+        stage('Validate Compose') {
+            steps {
+                sh '''
+                    set -eu
+                    docker --version
+                    docker compose version
+                    test -f docker/.env.example
+                    docker compose --env-file docker/.env.example -f docker/docker-compose.yml config --quiet
+                '''
+            }
+        }
+
+        stage('Build Application Images') {
+            steps {
+                sh '''
+                    set -eu
+                    docker compose --env-file docker/.env.example -f docker/docker-compose.yml build
+                    for service in $SERVICES; do
+                      docker image inspect "joindevops/$service:v1" >/dev/null
+                    done
+                '''
+            }
+        }
+
+        stage('Trivy Image Scan') {
+            steps {
+                sh '''
+                    set -eu
+                    command -v trivy >/dev/null 2>&1 || {
+                      echo "Trivy is required on the Jenkins agent."
+                      exit 1
+                    }
+                    mkdir -p trivy-reports
+                    for service in $SERVICES; do
+                      image="joindevops/$service:v1"
+                      trivy image --ignore-unfixed --severity HIGH,CRITICAL \
+                        --format json --output "trivy-reports/$service.json" "$image"
+                    done
+                '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'trivy-reports/*.json', allowEmptyArchive: true
+                }
+            }
+        }
+
+        stage('Push Images to ECR') {
+            when {
+                expression { params.PUSH_IMAGES }
+            }
+            steps {
+                sh '''
+                    set -eu
+                    command -v aws >/dev/null 2>&1
+                    AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+                    ECR_REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+                    aws ecr get-login-password --region "$AWS_REGION" |
+                      docker login --username AWS --password-stdin "$ECR_REGISTRY"
+
+                    for service in $SERVICES; do
+                      repository="$IMAGE_PREFIX/$service"
+                      aws ecr describe-repositories --repository-names "$repository" --region "$AWS_REGION" >/dev/null 2>&1 ||
+                        aws ecr create-repository --repository-name "$repository" --image-scanning-configuration scanOnPush=true --region "$AWS_REGION" >/dev/null
+                      docker tag "joindevops/$service:v1" "$ECR_REGISTRY/$repository:$IMAGE_TAG"
+                      docker push "$ECR_REGISTRY/$repository:$IMAGE_TAG"
+                    done
+                '''
+            }
+        }
+
+        stage('Deploy to EKS') {
+            when {
+                expression { params.DEPLOY_TO_EKS }
+            }
+            steps {
+                sh '''
+                    set -eu
+                    if [ "$PUSH_IMAGES" != "true" ]; then
+                      echo "DEPLOY_TO_EKS requires PUSH_IMAGES=true in the same build."
+                      exit 1
+                    fi
+                    command -v kubectl >/dev/null 2>&1
+                    AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+                    ECR_REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+                    aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER_NAME"
+                    kubectl get nodes
+                    kubectl get namespace "$K8S_NAMESPACE" >/dev/null 2>&1 ||
+                      kubectl create namespace "$K8S_NAMESPACE"
+
+                    # Credentials are provisioned out-of-band; never create secrets from source-controlled values.
+                    kubectl -n "$K8S_NAMESPACE" get secret mysql-credentials >/dev/null
+                    kubectl -n "$K8S_NAMESPACE" get secret rabbitmq-credentials >/dev/null
+                    kubectl get storageclass gp3-csi >/dev/null
+
+                    kubectl apply -n "$K8S_NAMESPACE" -f kubernetes/database/
+                    kubectl apply -n "$K8S_NAMESPACE" -f kubernetes/redis.yaml
+                    kubectl apply -n "$K8S_NAMESPACE" -f kubernetes/rabbitmq.yaml
+                    kubectl apply -n "$K8S_NAMESPACE" -f kubernetes/catalogue.yaml
+                    kubectl apply -n "$K8S_NAMESPACE" -f kubernetes/user.yaml
+                    kubectl apply -n "$K8S_NAMESPACE" -f kubernetes/cart.yaml
+                    kubectl apply -n "$K8S_NAMESPACE" -f kubernetes/shipping.yaml
+                    kubectl apply -n "$K8S_NAMESPACE" -f kubernetes/payment.yaml
+                    kubectl apply -n "$K8S_NAMESPACE" -f kubernetes/frontend.yaml
+                    kubectl apply -n "$K8S_NAMESPACE" -f kubernetes/frontend-ingress.yaml
+
+                    for service in $SERVICES; do
+                      kubectl -n "$K8S_NAMESPACE" set image "deployment/$service" \
+                        "$service=$ECR_REGISTRY/$IMAGE_PREFIX/$service:$IMAGE_TAG"
+                      kubectl -n "$K8S_NAMESPACE" rollout status "deployment/$service" --timeout=5m
+                    done
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "RoboShop pipeline completed. Image tag: ${env.IMAGE_TAG}"
+        }
+        failure {
+            echo 'RoboShop pipeline failed. Review the failed stage and archived reports.'
+        }
+    }
+}
