@@ -42,6 +42,19 @@ pipeline {
             }
         }
 
+        stage('Payment Unit Tests') {
+            steps {
+                sh '''
+                    set -eu
+                    docker run --rm \
+                      -v "$WORKSPACE/docker/payment:/app" \
+                      -w /app \
+                      python:3.9-slim \
+                      sh -c "python -m pip install --no-cache-dir Flask requests pika prometheus_client opentracing instana && python -m unittest discover --start-directory tests --pattern 'test_*.py' --verbose"
+                '''
+            }
+        }
+
         stage('Validate Compose') {
             steps {
                 sh '''
