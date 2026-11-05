@@ -34,7 +34,7 @@
       state: directory
   - name: download user code
     get_url:
-      url: {{ roboshop_artifact_base_url | regex_replace('/+ 
+      url: "{{ roboshop_artifact_base_url }}/user-v3.zip"
       dest: /tmp/user.zip
   - name: unzip user
     unarchive:
