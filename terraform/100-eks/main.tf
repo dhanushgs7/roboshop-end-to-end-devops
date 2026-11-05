@@ -281,3 +281,26 @@ resource "aws_eks_addon" "ebs_csi" {
     aws_iam_role_policy_attachment.ebs_csi
   ]
 }
+
+# Optionally grant Jenkins namespace-scoped deployment access. The namespace
+# objects themselves are created once by an administrator before CI deploys.
+resource "aws_eks_access_entry" "jenkins_deployer" {
+  count = var.deployment_principal_arn == null ? 0 : 1
+
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = var.deployment_principal_arn
+  type          = "STANDARD"
+}
+
+resource "aws_eks_access_policy_association" "jenkins_deployer" {
+  count = var.deployment_principal_arn == null ? 0 : 1
+
+  cluster_name  = aws_eks_cluster.main.name
+  principal_arn = aws_eks_access_entry.jenkins_deployer[0].principal_arn
+  policy_arn    = "arn:aws:eks::aws:cluster-access-policy/AmazonEKSAdminPolicy"
+
+  access_scope {
+    type       = "namespace"
+    namespaces = ["roboshop", "monitoring"]
+  }
+}
