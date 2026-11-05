@@ -33,6 +33,9 @@ jobs:
         working-directory: docker
         run: docker compose --env-file .env.example build --pull
 
+      - name: Build hardened Grafana image
+        run: docker build -t joindevops/grafana:v1 ./docker/grafana
+
       - name: Scan all application and monitoring images with Trivy
         env:
           IMAGE_TAG: joindevops
@@ -69,7 +72,7 @@ jobs:
           done
 
           scan_image "prom/prometheus:v3.15.1" "prometheus"
-          scan_image "grafana/grafana:13.3.0" "grafana"
+          scan_image "joindevops/grafana:v1" "grafana"
 
           if [ "${scan_failed}" -ne 0 ]; then
             echo "::error::One or more images have fixable HIGH/CRITICAL findings or could not be scanned."
