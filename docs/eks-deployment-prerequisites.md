@@ -19,11 +19,14 @@ The Ingress manifest uses an internet-facing ALB with IP targets. The controller
 
 ## 2. Required Kubernetes secrets
 
-Create the namespace first:
+Create both namespaces once with a cluster-administrator identity:
 
 ```bash
 kubectl apply -f kubernetes/namespace.yaml
+kubectl apply -f monitoring/kubernetes/namespace.yaml
 ```
+
+Before handing access to Jenkins, an administrator must also verify the AWS Load Balancer Controller is healthy in `kube-system` and that the `gp3-csi` StorageClass exists. The Jenkins role is intentionally namespace-scoped and does not read or mutate cluster-scoped resources.
 
 Supply credentials through a secure local shell or approved secret manager. Do not commit the values or put them in Jenkinsfile, YAML, GitHub Actions logs, or shell history.
 
@@ -64,7 +67,7 @@ The Jenkins agent needs:
 
 Use an attached IAM role or workload identity where available. Do not store long-lived AWS access keys in the repository.
 
-The IAM policy should be scoped to this project's ECR repositories and the minimum EKS discovery/push operations. Kubernetes RBAC and EKS access entries should restrict the deployment identity to the `roboshop` namespace where practical.
+The IAM policy should be scoped to this project's ECR repositories and the minimum EKS discovery/push operations. The Terraform EKS component can create an access entry for `deployment_principal_arn` and associate `AmazonEKSAdminPolicy` only with the `roboshop` and `monitoring` namespaces. This avoids granting Jenkins cluster-admin access. The Jenkins pipeline does not create namespaces, inspect `kube-system`, or read cluster-scoped StorageClass resources.
 
 ## 4. Deployment order
 
