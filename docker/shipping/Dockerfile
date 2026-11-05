@@ -1,4 +1,4 @@
-FROM maven:3.9.16-eclipse-temurin-8 AS build
+FROM maven:3.9.16-eclipse-temurin-17 AS build
 WORKDIR /app
 
 RUN apt-get update \
@@ -10,7 +10,7 @@ COPY src ./src
 RUN mvn --batch-mode clean package \
     && cp target/shipping-1.0.jar /app/shipping.jar
 
-FROM eclipse-temurin:8-jre-jammy
+FROM eclipse-temurin:17-jre-jammy
 WORKDIR /app
 RUN apt-get update \
     && apt-get upgrade -y \
