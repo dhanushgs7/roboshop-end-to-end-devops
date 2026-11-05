@@ -183,19 +183,16 @@ pipeline {
                     fi
 
                     # Namespaces are created once by a cluster administrator; Jenkins receives
-                    # namespace-scoped EKS access only and cannot create namespaces.
-                    kubectl get namespace "$K8S_NAMESPACE" >/dev/null || {
-                      echo "Namespace $K8S_NAMESPACE is missing. A cluster administrator must create it first."
+                    # namespace-scoped EKS access only and cannot query cluster-scoped Namespace objects.
+                    # Secret lookups below also fail safely if a namespace or secret is missing.
+                    kubectl -n "$K8S_NAMESPACE" get secret mysql-credentials >/dev/null || {
+                      echo "Missing namespace $K8S_NAMESPACE or secret mysql-credentials. Ask a cluster administrator to create them."
                       exit 1
                     }
-                    kubectl get namespace monitoring >/dev/null || {
-                      echo "Namespace monitoring is missing. A cluster administrator must create it first."
+                    kubectl -n "$K8S_NAMESPACE" get secret rabbitmq-credentials >/dev/null || {
+                      echo "Missing namespace $K8S_NAMESPACE or secret rabbitmq-credentials. Ask a cluster administrator to create them."
                       exit 1
                     }
-
-                    # Fail before changing workloads if required credentials are absent or incomplete.
-                    kubectl -n "$K8S_NAMESPACE" get secret mysql-credentials >/dev/null
-                    kubectl -n "$K8S_NAMESPACE" get secret rabbitmq-credentials >/dev/null
 
                     # Monitoring is internal-only and requires a pre-created secret with its password key.
                     kubectl -n monitoring get secret grafana-admin >/dev/null || {
