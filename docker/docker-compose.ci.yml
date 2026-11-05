@@ -16,3 +16,7 @@ services:
   payment:
     ports:
       - "18084:8080"
+
+  dispatch:
+    ports:
+      - "18085:8080"
