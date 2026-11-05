@@ -1,11 +1,4 @@
 apiVersion: v1
-kind: Namespace
-metadata:
-  name: monitoring
-  labels:
-    app.kubernetes.io/part-of: roboshop
----
-apiVersion: v1
 kind: ConfigMap
 metadata:
   name: prometheus-config
