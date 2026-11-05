@@ -2,6 +2,11 @@
   hosts: payment
   become: yes
   tasks:
+  - name: Require an operator-supplied RoboShop artifact base URL
+    ansible.builtin.assert:
+      that:
+        - roboshop_artifact_base_url | default('') | length > 0
+      fail_msg: "Set roboshop_artifact_base_url to your own trusted artifact repository before running this legacy EC2 playbook."
   - name: install python
     package:
       name: "{{ item }}"
@@ -31,7 +36,33 @@
       state: directory
   - name: download payment
     get_url:
-      url: https://roboshop-artifacts.s3.amazonaws.com/payment-v3.zip 
+      url: {{ roboshop_artifact_base_url | regex_replace('/+ 
+      dest: /tmp/payment.zip
+  - name: unzip payment
+    unarchive:
+      src: /tmp/payment.zip
+      dest: /app
+      remote_src: yes
+  - name: install dependencies
+    pip: 
+      requirements: requirements.txt
+      executable: pip3.9
+    args:
+      chdir: /app
+  - name: copy payment service
+    template:
+      src: payment.service.j2
+      dest: /etc/systemd/system/payment.service
+  - name: deamon reload
+    systemd_service:
+      name: payment
+      daemon_reload: true
+  - name: enable and restart payment
+    service:
+      name: payment
+      state: restarted
+      enabled: yes
+  , '') }}/payment-v3.zip 
       dest: /tmp/payment.zip
   - name: unzip payment
     unarchive:
