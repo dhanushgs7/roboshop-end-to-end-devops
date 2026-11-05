@@ -34,7 +34,7 @@
       state: directory
   - name: download cart code
     get_url:
-      url: {{ roboshop_artifact_base_url | regex_replace('/+ 
+      url: "{{ roboshop_artifact_base_url }}/cart-v3.zip"
       dest: /tmp/cart.zip
   - name: unzip cart
     unarchive:
