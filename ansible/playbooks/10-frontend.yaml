@@ -2,6 +2,11 @@
   hosts: frontend
   become: yes
   tasks:
+  - name: Require an operator-supplied RoboShop artifact base URL
+    ansible.builtin.assert:
+      that:
+        - roboshop_artifact_base_url | default('') | length > 0
+      fail_msg: "Set roboshop_artifact_base_url to your own trusted artifact repository before running this legacy EC2 playbook."
   - name: enable nginx 1.24
     command: dnf module enable nginx:1.24 -y
   - name: install nginx
@@ -22,7 +27,26 @@
       state: directory
   - name: download frontend
     get_url:
-      url: https://roboshop-artifacts.s3.amazonaws.com/frontend-v3.zip 
+      url: {{ roboshop_artifact_base_url | regex_replace('/+ 
+      dest: /tmp/frontend.zip
+  - name: unzip frontend
+    unarchive:
+      src: /tmp/frontend.zip
+      dest: /usr/share/nginx/html/
+      remote_src: yes
+  - name: remove nginx default conf
+    file:
+      path: /etc/nginx/nginx.conf
+      state: absent
+  - name: copy nginx conf
+    template:
+      src: nginx.conf.j2
+      dest: /etc/nginx/nginx.conf
+  - name: restart and enable frontend
+    service:
+      name: nginx
+      state: restarted
+      enabled: yes, '') }}/frontend-v3.zip 
       dest: /tmp/frontend.zip
   - name: unzip frontend
     unarchive:
