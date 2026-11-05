@@ -15,7 +15,9 @@ Catalogue, User, and Shipping are not configured as scrape targets because the c
 ## Prerequisites
 
 1. EKS cluster is ready and the AWS EBS CSI driver is installed.
-2. The `gp3-csi` StorageClass exists.
+2. The EBS CSI add-on is healthy and the `gp3-csi` StorageClass has been created by an administrator:
+
+   `kubectl apply -f kubernetes/storage/gp3-csi-storageclass.yaml`
 3. Cart and Payment are deployed in namespace `roboshop` and expose their existing `/metrics` routes on port 8080.
 4. Create the Grafana admin secret in the `monitoring` namespace before applying the stack. Generate a unique password locally and do not commit it:
 
