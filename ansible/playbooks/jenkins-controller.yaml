@@ -1,0 +1,56 @@
+---
+- name: Install and enable the Jenkins LTS controller on Ubuntu
+  hosts: jenkins_controller
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Ensure supported Ubuntu distribution
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Ubuntu"
+          - ansible_distribution_version is version("22.04", ">=")
+        fail_msg: "This playbook supports Ubuntu 22.04 or newer."
+
+    - name: Install Jenkins runtime prerequisites
+      ansible.builtin.apt:
+        name:
+          - fontconfig
+          - openjdk-17-jre
+          - curl
+          - ca-certificates
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Install Jenkins repository signing key
+      ansible.builtin.get_url:
+        url: https://pkg.jenkins.io/debian-stable/jenkins.io-2023.key
+        dest: /usr/share/keyrings/jenkins-keyring.asc
+        mode: "0644"
+
+    - name: Configure Jenkins LTS APT repository
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/jenkins-keyring.asc] https://pkg.jenkins.io/debian-stable binary/"
+        filename: jenkins
+        state: present
+
+    - name: Install Jenkins LTS
+      ansible.builtin.apt:
+        name: jenkins
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Enable and start Jenkins controller
+      ansible.builtin.service:
+        name: jenkins
+        state: started
+        enabled: true
+
+    - name: Report controller endpoint and setup reminder
+      ansible.builtin.debug:
+        msg:
+          - "Jenkins listens on TCP 8080 by default. Restrict access with a firewall or private network."
+          - "Complete the initial setup and install the Pipeline, Git, and required agent plugins through the Jenkins UI."
+          - "Do not expose the initial admin password or agent secrets in Ansible output."
