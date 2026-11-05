@@ -68,6 +68,19 @@ pipeline {
             }
         }
 
+        stage('User Unit Tests') {
+            steps {
+                sh '''
+                    set -eu
+                    docker run --rm \\
+                      -v "$WORKSPACE/docker/user:/app" \\
+                      -w /app \\
+                      node:20-alpine \\
+                      npm test
+                '''
+            }
+        }
+
         stage('Cart Unit Tests') {
             steps {
                 sh '''
