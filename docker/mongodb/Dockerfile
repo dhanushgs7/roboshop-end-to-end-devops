@@ -5,6 +5,9 @@ WORKDIR /src
 RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /gosu .
 
 FROM mongo:7.0
+# js-yaml was installed into this custom path by an earlier remediation attempt;
+# MongoDB's entrypoint and RoboShop initialization scripts do not use it.
+RUN rm -rf /opt/js-yaml
 COPY --from=gosu-builder /gosu /usr/local/bin/gosu
 
 RUN apt-get update \
