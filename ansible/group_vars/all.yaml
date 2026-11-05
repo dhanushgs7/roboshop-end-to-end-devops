@@ -1,7 +1,5 @@
 # Override service endpoints in inventory or environment-specific group_vars.
 # Do not put trainer domains, credentials, or account-specific values in this shared file.
-ansible_user: ec2-user
-
 # Credentials are read from the environment at runtime and are never committed.
 RABBITMQ_PASSWORD: "{{ lookup('ansible.builtin.env', 'RABBITMQ_PASSWORD') }}"
 MYSQL_ROOT_PASSWORD: "{{ lookup('ansible.builtin.env', 'MYSQL_ROOT_PASSWORD') }}"
