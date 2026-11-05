@@ -41,6 +41,11 @@ jobs:
           set -eu
           find . -maxdepth 1 -type f -name "*.js" -print0 | xargs -0 -r -n1 node --check
 
+      - name: Run User unit tests
+        if: matrix.service == 'user'
+        working-directory: docker/user
+        run: npm test
+
       - name: Run Cart unit tests
         if: matrix.service == 'cart'
         working-directory: docker/cart
