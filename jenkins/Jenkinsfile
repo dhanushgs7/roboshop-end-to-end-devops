@@ -239,9 +239,15 @@ pipeline {
                       test -n "$value" || { echo "rabbitmq-credentials is missing key $key"; exit 1; }
                     done
 
+                    # Start backing services first and wait for them before deploying dependants.
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/database/"
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/redis.yaml"
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/rabbitmq.yaml"
+
+                    for service in mongodb mysql redis rabbitmq; do
+                      kubectl -n "$K8S_NAMESPACE" rollout status "deployment/$service" --timeout=5m
+                    done
+
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/catalogue.yaml"
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/user.yaml"
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/cart.yaml"
@@ -250,7 +256,7 @@ pipeline {
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/frontend.yaml"
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/frontend-ingress.yaml"
 
-                    for service in $SERVICES; do
+                    for service in catalogue user cart shipping payment frontend; do
                       kubectl -n "$K8S_NAMESPACE" rollout status "deployment/$service" --timeout=5m
                     done
 
