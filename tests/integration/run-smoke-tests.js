@@ -12,6 +12,7 @@ const urls = {
 };
 
 const cartId = `ci-smoke-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
+let checkoutUserId;
 
 async function request(url, options = {}) {
   const response = await fetch(url, {
@@ -149,6 +150,7 @@ async function main() {
 
     if (process.env.RUN_FULL_CHECKOUT === 'true') {
       const username = `ci-checkout-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
+      checkoutUserId = username;
       const password = crypto.randomBytes(16).toString('hex');
       await check('Registered-user checkout creates order history and clears the cart', async () => {
         const registered = await request(`${urls.user}/register`, {
@@ -195,13 +197,15 @@ async function main() {
 
     console.log('\nAll enabled RoboShop integration tests passed.');
   } finally {
-    try {
-      const cleanup = await request(`${urls.cart}/cart/${encodeURIComponent(cartId)}`, { method: 'DELETE' });
-      if (![200, 404].includes(cleanup.status)) {
-        console.warn(`WARN  cart cleanup returned HTTP ${cleanup.status}`);
+    for (const id of [cartId, checkoutUserId].filter(Boolean)) {
+      try {
+        const cleanup = await request(`${urls.cart}/cart/${encodeURIComponent(id)}`, { method: 'DELETE' });
+        if (![200, 404].includes(cleanup.status)) {
+          console.warn(`WARN  cart cleanup for ${id} returned HTTP ${cleanup.status}`);
+        }
+      } catch (error) {
+        console.warn(`WARN  cart cleanup for ${id} failed: ${error.message}`);
       }
-    } catch (error) {
-      console.warn(`WARN  cart cleanup failed: ${error.message}`);
     }
   }
 }
