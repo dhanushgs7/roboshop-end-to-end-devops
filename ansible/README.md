@@ -23,7 +23,7 @@ The `playbooks/jenkins-agent-prerequisites.yaml` playbook prepares an Ubuntu 24.
 4. Run syntax checks: `ansible-playbook --syntax-check playbooks/jenkins-agent-prerequisites.yaml` and `ansible-playbook --syntax-check playbooks/jenkins-controller.yaml`.
 5. Review the target hosts, then run the relevant controller or agent playbook. The playbook changes the target host; do not run it against production without reviewing the tasks first.
 
-The playbook does not install or register Jenkins itself, configure controller credentials, create cloud resources, or assign IAM permissions. Install AWS CLI v2, kubectl, and Trivy from their official sources and register the agent using a securely handled Jenkins secret. Prefer an instance profile/IAM role over static AWS keys.
+The agent playbook installs the CLI tools but does not register the agent or configure controller credentials. Register the agent using a securely handled Jenkins secret. Prefer an instance profile/IAM role over static AWS keys.
 
 ## Legacy EC2/Route 53 playbook
 
@@ -31,6 +31,6 @@ The playbook does not install or register Jenkins itself, configure controller c
 
 ## Application configuration playbooks
 
-The numbered application playbooks are legacy EC2 configuration examples. They download application artifacts from the training S3 bucket and expect host inventory and service endpoints to be supplied by the operator. They are not used by the EKS deployment pipeline.
+The numbered application playbooks are legacy EC2 configuration examples. They require the operator to supply `roboshop_artifact_base_url` pointing to a trusted artifact repository, plus host inventory and service endpoints. They no longer reference the training artifact bucket and are not used by the EKS deployment pipeline.
 
 Never commit private inventory files, credentials, account IDs, domain names, SSH private keys, or generated secrets.
