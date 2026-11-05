@@ -1,0 +1,18 @@
+# CI-only port mappings for the post-build integration smoke suite.
+# This file is used only by GitHub Actions and does not expose service ports in local defaults.
+services:
+  cart:
+    ports:
+      - "18080:8080"
+  catalogue:
+    ports:
+      - "18081:8080"
+  user:
+    ports:
+      - "18082:8080"
+  shipping:
+    ports:
+      - "18083:8080"
+  payment:
+    ports:
+      - "18084:8080"
