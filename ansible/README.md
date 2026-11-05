@@ -4,10 +4,11 @@
 
 The `playbooks/jenkins-agent-prerequisites.yaml` playbook prepares an Ubuntu 22.04+ x86_64 Jenkins agent with Java 17, Git, Docker Engine, Docker Compose v2, AWS CLI v2, kubectl (default v1.34.0; override `kubectl_version` to match your EKS minor version), Trivy, and common utilities.
 
-1. Create an inventory file named `ansible/inventory.ini` (it is intentionally not committed) with a `[jenkins_agents]` group.
-2. Verify SSH access and privilege escalation.
-3. Run a syntax check: `ansible-playbook --syntax-check ansible/playbooks/jenkins-agent-prerequisites.yaml`.
-4. Review the target hosts, then run the playbook from the repository root with the appropriate inventory.
+1. From the repository root, copy `ansible/inventory.ini.example` to `ansible/inventory.ini` and replace the example host with your Jenkins agent's private DNS name or IP.
+2. Verify SSH access and privilege escalation for the `ansible_user`.
+3. Change into `ansible/` so `ansible.cfg` and its relative inventory path are loaded.
+4. Run a syntax check: `ansible-playbook --syntax-check playbooks/jenkins-agent-prerequisites.yaml`.
+5. Review the target hosts, then run `ansible-playbook playbooks/jenkins-agent-prerequisites.yaml`. The playbook changes the target host; do not run it against production without reviewing the tasks first.
 
 The playbook does not install or register Jenkins itself, configure controller credentials, create cloud resources, or assign IAM permissions. Install AWS CLI v2, kubectl, and Trivy from their official sources and register the agent using a securely handled Jenkins secret. Prefer an instance profile/IAM role over static AWS keys.
 
