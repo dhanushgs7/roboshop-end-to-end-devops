@@ -1,0 +1,4 @@
+# Copy to inventory.ini and replace the placeholder with your private Jenkins agent host.
+# Keep inventory.ini out of version control.
+[jenkins_agents]
+jenkins-agent.example.internal ansible_user=ubuntu
