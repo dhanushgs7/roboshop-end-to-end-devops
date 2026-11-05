@@ -1,0 +1,12 @@
+{
+  "name": "roboshop-integration-smoke-tests",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Post-deployment RoboShop service integration smoke tests using Node.js built-in fetch",
+  "scripts": {
+    "test:integration": "node run-smoke-tests.js"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
