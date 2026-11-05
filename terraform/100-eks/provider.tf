@@ -9,7 +9,6 @@ terraform {
   }
 
   backend "s3" {
-    bucket       = "roboshop-terraform-state-357229908934"
     key          = "roboshop-eks.tfstate"
     region       = "us-east-1"
     encrypt      = true
