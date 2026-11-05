@@ -1,0 +1,4 @@
+# Copy this file to backend.hcl and set a private S3 bucket you own.
+# Keep backend.hcl out of version control. Each Terraform component sets its own state key.
+bucket = "REPLACE_WITH_YOUR_PRIVATE_TERRAFORM_STATE_BUCKET"
+region = "us-east-1"
