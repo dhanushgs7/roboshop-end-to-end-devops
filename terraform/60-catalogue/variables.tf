@@ -10,10 +10,6 @@ variable "app_version" {
   default = "v3"
 }
 
-/* variable "zone_id" {
-    default = "Z07086101C1CVP7AT2UK4"
-}  */
-
 variable "domain_name" {}
 variable "ec2_key_name" {
   description = "Name of the AWS EC2 key pair"
