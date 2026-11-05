@@ -193,9 +193,6 @@ pipeline {
 
                     # Namespaces are created once by a cluster administrator; Jenkins receives
                     # namespace-scoped EKS access only.
-                    kubectl get namespace "$K8S_NAMESPACE" >/dev/null
-                    kubectl get namespace monitoring >/dev/null
-
                     # Fail before changing workloads if required credentials are absent or incomplete.
                     kubectl -n "$K8S_NAMESPACE" get secret mysql-credentials >/dev/null
                     kubectl -n "$K8S_NAMESPACE" get secret rabbitmq-credentials >/dev/null
