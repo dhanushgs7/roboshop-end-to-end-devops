@@ -59,6 +59,7 @@ jobs:
         run: |
           set -euo pipefail
           for image in prom/prometheus:v3.13.5 grafana/grafana:13.3.0; do
+            docker pull "${image}"
             name="${image%%:*}"
             name="${name##*/}"
             echo "Scanning ${image}"
