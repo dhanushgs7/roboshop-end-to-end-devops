@@ -1,0 +1,41 @@
+name: Node.js Source Validation
+
+on:
+  push:
+    paths:
+      - "docker/catalogue/**"
+      - "docker/user/**"
+      - "docker/cart/**"
+      - ".github/workflows/node-validation.yml"
+  pull_request:
+    paths:
+      - "docker/catalogue/**"
+      - "docker/user/**"
+      - "docker/cart/**"
+      - ".github/workflows/node-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  node-source-check:
+    name: Validate Node.js service syntax
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [catalogue, user, cart]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check JavaScript syntax
+        working-directory: docker/${{ matrix.service }}
+        run: |
+          set -eu
+          find . -maxdepth 1 -type f -name "*.js" -print0 | xargs -0 -r -n1 node --check

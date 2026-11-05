@@ -45,3 +45,21 @@ venv/
 .DS_Store
 Thumbs.db
 !**/.env.example
+
+# JavaScript test/build output
+**/node_modules/
+**/coverage/
+**/.nyc_output/
+
+# Python test/build output
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+htmlcov/
+
+# Java / Maven build output
+**/target/
+
+# Local test and tool reports
+trivy-reports/
+*.log
