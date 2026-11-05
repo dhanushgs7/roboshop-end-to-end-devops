@@ -9,10 +9,10 @@ RUN apt-get update \
 COPY requirements.txt .
 COPY payment.ini .
 COPY *.py .
-RUN python -m pip install --no-cache-dir --upgrade pip 'setuptools==84.2.1' \
+RUN python -m pip install --no-cache-dir --upgrade pip \
     && python -m pip install --no-cache-dir -r requirements.txt \
-    && python -c "import setuptools; assert setuptools.__version__ == '84.2.1', setuptools.__version__" \
     && python -m pip check \
+    && python -c "import importlib.util; assert importlib.util.find_spec('setuptools') is None, 'setuptools must not be present in the runtime image'" \
     && apt-get purge -y --auto-remove build-essential python3-dev \
     && rm -rf /var/lib/apt/lists/*
 EXPOSE 8080
