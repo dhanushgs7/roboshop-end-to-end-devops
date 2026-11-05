@@ -52,7 +52,8 @@ RUN set -eux; \
     python -c "import flask, pika, prometheus_client, opentracing, instana, requests; import importlib.util; assert importlib.util.find_spec('setuptools') is None"; \
     ldd /usr/local/bin/python3.12; \
     ldd /usr/local/bin/uwsgi; \
-    ! ldd /usr/local/bin/python3.12 /usr/local/bin/uwsgi 2>&1 | grep -q "not found"; \
+    ! ldd /usr/local/bin/python3.12 2>&1 | grep -q "not found"; \
+    ! ldd /usr/local/bin/uwsgi 2>&1 | grep -q "not found"; \
     test -z "$(find /usr/local/lib/python3.12 \( -type d -name 'setuptools-*.dist-info' -o -type f -name 'setuptools-*.whl' -o -type f -name 'setuptools-*.egg-info' \) -print -quit)"
 
 EXPOSE 8080
