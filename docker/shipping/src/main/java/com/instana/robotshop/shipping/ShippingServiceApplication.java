@@ -70,7 +70,7 @@ public class ShippingServiceApplication implements WebMvcConfigurer {
 
             SpanSupport.annotate("datacenter", DATA_CENTERS[new Random().nextInt(DATA_CENTERS.length)]);
 
-            return super.preHandle(request, response, handler);
+            return true;
         }
     }
 }
