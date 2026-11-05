@@ -2,7 +2,7 @@
 
 ## Jenkins controller preparation
 
-The `playbooks/jenkins-controller.yaml` playbook installs the Jenkins LTS package and Java 17 on an Ubuntu 22.04+ controller host. It enables the Jenkins service but does not configure public ingress, install plugins, create credentials, or expose the initial administrator password.
+The `playbooks/jenkins-controller.yaml` playbook installs the Jenkins LTS package and Java 21 on an Ubuntu 24.04+ controller host. It enables the Jenkins service but does not configure public ingress, install plugins, create credentials, or expose the initial administrator password.
 
 From the `ansible/` directory, after reviewing the inventory:
 
@@ -15,7 +15,7 @@ Restrict TCP 8080 to trusted networks and complete Jenkins' initial setup throug
 
 ## Jenkins agent preparation
 
-The `playbooks/jenkins-agent-prerequisites.yaml` playbook prepares an Ubuntu 22.04+ x86_64 Jenkins agent with Java 17, Git, Docker Engine, Docker Compose v2, AWS CLI v2, kubectl (default v1.34.0; override `kubectl_version` to match your EKS minor version), Trivy, and common utilities.
+The `playbooks/jenkins-agent-prerequisites.yaml` playbook prepares an Ubuntu 24.04+ x86_64 Jenkins agent with Java 21, Git, Docker Engine, Docker Compose v2, AWS CLI v2, kubectl (default v1.34.0; override `kubectl_version` to match your EKS minor version), Trivy, and common utilities.
 
 1. From the repository root, copy `ansible/inventory.ini.example` to `ansible/inventory.ini` and replace the example host with your Jenkins agent's private DNS name or IP.
 2. Verify SSH access and privilege escalation for the `ansible_user`.
