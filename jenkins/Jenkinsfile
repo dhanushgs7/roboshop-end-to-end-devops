@@ -169,7 +169,6 @@ pipeline {
                     AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
                     ECR_REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
                     aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER_NAME"
-                    kubectl get nodes
                     kubectl -n kube-system get deployment aws-load-balancer-controller >/dev/null || {
                       echo "AWS Load Balancer Controller is not installed in kube-system. See docs/eks-deployment-prerequisites.md."
                       exit 1
@@ -192,7 +191,10 @@ pipeline {
                       exit 1
                     fi
 
-                    kubectl apply -f "$RENDERED_MANIFESTS/namespace.yaml"
+                    # Namespaces are created once by a cluster administrator; Jenkins receives
+                    # namespace-scoped EKS access only.
+                    kubectl get namespace "$K8S_NAMESPACE" >/dev/null
+                    kubectl get namespace monitoring >/dev/null
 
                     # Fail before changing workloads if required credentials are absent or incomplete.
                     kubectl -n "$K8S_NAMESPACE" get secret mysql-credentials >/dev/null
@@ -222,7 +224,6 @@ pipeline {
                     done
 
                     # Monitoring is internal-only and requires a pre-created secret.
-                    kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
                     kubectl -n monitoring get secret grafana-admin >/dev/null || {
                       echo "Create the grafana-admin secret in namespace monitoring before enabling EKS deployment."
                       exit 1
