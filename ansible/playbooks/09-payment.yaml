@@ -62,30 +62,3 @@
       name: payment
       state: restarted
       enabled: yes
-  , '') }}/payment-v3.zip 
-      dest: /tmp/payment.zip
-  - name: unzip payment
-    unarchive:
-      src: /tmp/payment.zip
-      dest: /app
-      remote_src: yes
-  - name: install dependencies
-    pip: 
-      requirements: requirements.txt
-      executable: pip3.9
-    args:
-      chdir: /app
-  - name: copy payment service
-    template:
-      src: payment.service.j2
-      dest: /etc/systemd/system/payment.service
-  - name: deamon reload
-    systemd_service:
-      name: payment
-      daemon_reload: true
-  - name: enable and restart payment
-    service:
-      name: payment
-      state: restarted
-      enabled: yes
-  
