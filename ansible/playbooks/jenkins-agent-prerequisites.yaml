@@ -3,6 +3,8 @@
   hosts: jenkins_agents
   become: true
   gather_facts: true
+  vars:
+    kubectl_version: "v1.34.0"
 
   tasks:
     - name: Ensure supported Ubuntu distribution
@@ -22,6 +24,7 @@
           - jq
           - openjdk-17-jre
           - docker.io
+          - docker-compose-v2
         state: present
         update_cache: true
         cache_valid_time: 3600
@@ -31,6 +34,53 @@
         name: docker
         state: started
         enabled: true
+
+    - name: Download AWS CLI v2 installer
+      ansible.builtin.get_url:
+        url: https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip
+        dest: /tmp/awscliv2.zip
+        mode: "0644"
+      when: ansible_architecture == "x86_64"
+
+    - name: Extract AWS CLI v2 installer
+      ansible.builtin.unarchive:
+        src: /tmp/awscliv2.zip
+        dest: /tmp
+        remote_src: true
+        creates: /tmp/aws/install
+      when: ansible_architecture == "x86_64"
+
+    - name: Install AWS CLI v2
+      ansible.builtin.command: /tmp/aws/install --update
+      args:
+        creates: /usr/local/bin/aws
+      when: ansible_architecture == "x86_64"
+
+    - name: Install kubectl matching the default EKS Kubernetes minor version
+      ansible.builtin.get_url:
+        url: "https://dl.k8s.io/release/{{ kubectl_version }}/bin/linux/amd64/kubectl"
+        dest: /usr/local/bin/kubectl
+        mode: "0755"
+      when: ansible_architecture == "x86_64"
+
+    - name: Download Trivy repository signing key
+      ansible.builtin.get_url:
+        url: https://aquasecurity.github.io/trivy-repo/deb/public.key
+        dest: /usr/share/keyrings/trivy.gpg
+        mode: "0644"
+
+    - name: Configure Trivy APT repository
+      ansible.builtin.apt_repository:
+        repo: "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb generic main"
+        filename: trivy
+        state: present
+
+    - name: Install Trivy
+      ansible.builtin.apt:
+        name: trivy
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
 
     - name: Ensure Jenkins agent account exists
       ansible.builtin.getent:
