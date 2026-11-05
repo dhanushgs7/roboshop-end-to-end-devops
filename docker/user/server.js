@@ -7,7 +7,8 @@ instana({
     }
 });
 
-const { MongoClient, ObjectId } = require('mongodb');
+const { MongoClient } = require('mongodb');
+const { hashPassword, verifyPassword, toPublicUser } = require('./password-utils');
 const { createClient } = require('redis');
 const bodyParser = require('body-parser');
 const express = require('express');
@@ -101,7 +102,7 @@ app.get('/check/:id', async (req, res) => {
 app.get('/users', async (req, res) => {
     if (mongoConnected) {
         try {
-            const users = await usersCollection.find().toArray();
+            const users = await usersCollection.find({}, { projection: { password: 0 } }).toArray();
             res.json(users);
         } catch (e) {
             req.log.error('ERROR', e);
@@ -114,28 +115,40 @@ app.get('/users', async (req, res) => {
 });
 
 app.post('/login', async (req, res) => {
-    req.log.info('login', req.body);
-    if (req.body.name === undefined || req.body.password === undefined) {
-        req.log.warn('credentails not complete');
-        res.status(400).send('name or passowrd not supplied');
+    const name = req.body.name;
+    const password = req.body.password;
+    req.log.info({ name }, 'login request');
+
+    if (typeof name !== 'string' || name.length === 0 ||
+        typeof password !== 'string' || password.length === 0) {
+        res.status(400).send('name or password not supplied');
     } else if (mongoConnected) {
         try {
-            const user = await usersCollection.findOne({
-                name: req.body.name,
-            });
-            req.log.info('user', user);
-            if (user) {
-                if (user.password == req.body.password) {
-                    res.json(user);
-                } else {
-                    res.status(404).send('incorrect password');
-                }
-            } else {
+            const user = await usersCollection.findOne({ name });
+            if (!user) {
                 res.status(404).send('name not found');
+                return;
             }
+
+            const verification = await verifyPassword(password, user.password);
+            if (!verification.valid) {
+                res.status(404).send('incorrect password');
+                return;
+            }
+
+            if (verification.needsRehash) {
+                const upgradedPassword = await hashPassword(password);
+                await usersCollection.updateOne(
+                    { _id: user._id },
+                    { $set: { password: upgradedPassword } }
+                );
+                user.password = upgradedPassword;
+            }
+
+            res.json(toPublicUser(user));
         } catch (e) {
             req.log.error('ERROR', e);
-            res.status(500).send(e);
+            res.status(500).send('login failed');
         }
     } else {
         req.log.error('database not available');
@@ -145,28 +158,28 @@ app.post('/login', async (req, res) => {
 
 // TODO - validate email address format
 app.post('/register', async (req, res) => {
-    req.log.info('register', req.body);
-    if (req.body.name === undefined || req.body.password === undefined || req.body.email === undefined) {
-        req.log.warn('insufficient data');
+    const name = typeof req.body.name === 'string' ? req.body.name.trim() : '';
+    const password = req.body.password;
+    const email = typeof req.body.email === 'string' ? req.body.email.trim() : '';
+    req.log.info({ name }, 'registration request');
+
+    if (name.length === 0 || typeof password !== 'string' ||
+        password.length === 0 || email.length === 0) {
         res.status(400).send('insufficient data');
     } else if (mongoConnected) {
         try {
-            const user = await usersCollection.findOne({ name: req.body.name });
-            if (user) {
-                req.log.warn('user already exists');
+            const existingUser = await usersCollection.findOne({ name });
+            if (existingUser) {
                 res.status(400).send('name already exists');
-            } else {
-                const r = await usersCollection.insertOne({
-                    name: req.body.name,
-                    password: req.body.password,
-                    email: req.body.email
-                });
-                req.log.info('inserted', r.result);
-                res.send('OK');
+                return;
             }
+
+            const passwordHash = await hashPassword(password);
+            await usersCollection.insertOne({ name, password: passwordHash, email });
+            res.send('OK');
         } catch (e) {
             req.log.error('ERROR', e);
-            res.status(500).send(e);
+            res.status(500).send('registration failed');
         }
     } else {
         req.log.error('database not available');
