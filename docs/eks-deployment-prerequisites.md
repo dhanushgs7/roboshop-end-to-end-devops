@@ -77,8 +77,9 @@ The pipeline:
 2. When `PUSH_IMAGES=true`, creates missing ECR repositories and pushes immutable build-specific tags.
 3. When `DEPLOY_TO_EKS=true`, connects to the configured cluster and checks the required namespace-scoped Secrets and keys. StorageClass and AWS Load Balancer Controller readiness must be verified by the cluster administrator before deployment.
 4. Renders the Kubernetes manifests to use the exact ECR image tag from the current build.
-5. Applies data services, application services, frontend and Ingress into the pre-created `roboshop` namespace, then applies the monitoring stack into the pre-created `monitoring` namespace.
-6. Waits for each application Deployment rollout.
+5. Applies MongoDB, MySQL, Redis and RabbitMQ first, then waits for all four backing-service Deployments to become Ready.
+6. Applies the application services, frontend and Ingress, then waits for each application Deployment rollout. Payment has HTTP readiness and liveness probes on `/health`.
+7. Applies the monitoring stack into the pre-created `monitoring` namespace and waits for Prometheus and Grafana rollouts.
 
 Terraform provisioning remains a separate, manually reviewed operation. A source-code push never runs `terraform apply`.
 
