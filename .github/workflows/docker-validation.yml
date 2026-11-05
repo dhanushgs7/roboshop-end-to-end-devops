@@ -39,7 +39,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p trivy-reports
-          for service in catalogue user cart payment shipping frontend mongodb mysql; do
+          for service in catalogue user cart payment shipping dispatch frontend mongodb mysql; do
             image="${IMAGE_TAG}/${service}:v1"
             echo "Scanning ${image}"
             docker run --rm \

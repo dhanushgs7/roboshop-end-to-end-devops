@@ -20,6 +20,9 @@ Frontend (Nginx :80)
   |-- /api/cart -------> Cart -------> Redis + Catalogue
   |-- /api/shipping ---> Shipping ---> MySQL + Cart
   |-- /api/payment ----> Payment ----> User + Cart + RabbitMQ
+                                      |
+                                      v
+                                  Dispatch worker (consumes orders)
   |
   v
 Docker Compose (local integration environment)
@@ -28,7 +31,7 @@ GitHub
   |
   v
 Jenkins CI/CD
-  |-- payment service unit tests
+  |-- User, Cart, Payment, Shipping and Dispatch unit tests
   |-- Docker image build
   |-- Trivy vulnerability scan
   |-- push images to AWS ECR
@@ -60,12 +63,13 @@ Terraform provisions AWS infrastructure separately from application deployments.
 | `terraform/` | AWS infrastructure components, including `100-eks` |
 | `kubernetes/` | Kubernetes Deployments, Services, storage and ingress resources |
 | `docker/payment/tests/` | Payment service unit tests |
+| `docker/dispatch/` | Go-based RabbitMQ order consumer and unit tests |
 | `docker/shipping/src/test/` | Shipping service controller unit tests |
 | `monitoring/` | Prometheus and Grafana configuration, dashboard and Kubernetes deployment |
 | `tests/integration/` | Post-deployment service integration smoke tests |
 | `docs/` | Architecture and operational documentation |
 
-The application build contexts currently present under `docker/` are `catalogue`, `user`, `cart`, `payment`, `shipping`, `frontend`, `mongodb` and `mysql`. Redis and RabbitMQ use upstream images.
+The application build contexts currently present under `docker/` are `catalogue`, `user`, `cart`, `payment`, `shipping`, `dispatch`, `frontend`, `mongodb` and `mysql`. Redis and RabbitMQ use upstream images. The stack therefore has 11 runtime components when the two upstream infrastructure services are included.
 
 ## Run locally with Docker Compose
 
@@ -104,7 +108,7 @@ Do not use `down -v` unless you intentionally want to delete local database volu
 
 ## CI validation
 
-GitHub Actions validates the Compose configuration and builds all eight custom images from source. Trivy scans each built image and uploads JSON vulnerability reports as workflow artifacts. The initial Trivy pass is report-only so existing findings can be reviewed before a blocking severity threshold is introduced.
+GitHub Actions validates the Compose configuration and builds all nine custom images from source. Trivy scans each built image and uploads JSON vulnerability reports as workflow artifacts. The initial Trivy pass is report-only so existing findings can be reviewed before a blocking severity threshold is introduced.
 
 Terraform CI runs formatting and validation for the existing infrastructure components and the EKS component. These checks do not provision AWS resources.
 
@@ -122,8 +126,8 @@ No AWS infrastructure is created by the local Compose workflow or the CI validat
 
 ## Important implementation notes
 
-- Dispatch source was not present in the trainer RoboShop source repositories inspected for this project. It is not represented by fabricated application code; add it only when a legitimate source package is available.
-- User password-security and Cart utility, Payment service, and Shipping service unit tests are wired into GitHub Actions and Jenkins. Catalogue receives JavaScript syntax validation in CI. A separate post-deployment smoke suite in `tests/integration/` verifies service readiness, catalogue-to-cart behavior, Redis persistence, shipping-to-cart behavior, payment validation, and Prometheus metrics. It is intentionally not run by CI because it requires a deployed environment; see its README for port-forwarding and execution instructions. The registered-user checkout path is available as an opt-in integration test (`RUN_FULL_CHECKOUT=true`) because it calls the external demo gateway and publishes to RabbitMQ; the RabbitMQ consumer/dispatch processing path remains unverified because dispatch source is unavailable.
+- Dispatch is a Go worker that consumes the Payment service's `robot-shop` / `orders` RabbitMQ event contract. Its implementation includes manual acknowledgements, reconnect handling, `/health` and `/readyz` endpoints, and graceful shutdown. It records dispatch acceptance but does not integrate with a real warehouse or courier; that fulfilment adapter remains future work. Provenance and license details are in `docker/dispatch/UPSTREAM-ATTRIBUTION.md`.
+- User password-security, Cart utility, Payment, Shipping and Dispatch unit tests are wired into GitHub Actions; Jenkins also runs these service tests before image builds. Catalogue receives JavaScript syntax validation in CI. Catalogue receives JavaScript syntax validation in CI. The integration suite in `tests/integration/` verifies service readiness, catalogue-to-cart behavior, Redis persistence, shipping-to-cart behavior, payment validation, Dispatch-to-RabbitMQ readiness, and Prometheus metrics. Docker Compose CI also publishes a synthetic order event and verifies that Dispatch consumes it. The registered-user checkout test remains opt-in (`RUN_FULL_CHECKOUT=true`) because it calls the external demo gateway and leaves a test user in MongoDB; run it only in a non-production environment. See the integration README for port-forwarding and execution instructions.
 - The User service stores new passwords as salted scrypt hashes, upgrades legacy plaintext password records after a successful login, and omits password fields from API responses. Production use still requires rate limiting, robust session/token authentication, email validation, and broader security testing.
 - Use a dedicated, least-privilege CI identity for ECR push and EKS deployment. Prefer short-lived AWS role credentials over static access keys.
 

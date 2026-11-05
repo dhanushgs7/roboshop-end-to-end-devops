@@ -25,7 +25,7 @@ pipeline {
         EKS_CLUSTER_NAME = 'roboshop-dev'
         K8S_NAMESPACE = 'roboshop'
         IMAGE_PREFIX = 'roboshop'
-        SERVICES = 'catalogue user cart payment shipping frontend mongodb mysql'
+        SERVICES = 'catalogue user cart payment shipping dispatch frontend mongodb mysql'
     }
 
     stages {
@@ -64,6 +64,19 @@ pipeline {
                       -w /app \
                       maven:3.9.9-eclipse-temurin-17 \
                       mvn --batch-mode --no-transfer-progress test
+                '''
+            }
+        }
+
+        stage('Dispatch Unit Tests') {
+            steps {
+                sh '''
+                    set -eu
+                    docker run --rm \
+                      -v "$WORKSPACE/docker/dispatch:/app" \
+                      -w /app \
+                      golang:1.23-alpine \
+                      sh -c "go mod tidy && go test ./..."
                 '''
             }
         }
@@ -252,6 +265,8 @@ pipeline {
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/user.yaml"
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/cart.yaml"
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/shipping.yaml"
+                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/dispatch.yaml"
+                    kubectl -n "$K8S_NAMESPACE" rollout status deployment/dispatch --timeout=5m
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/payment.yaml"
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/frontend.yaml"
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/frontend-ingress.yaml"
