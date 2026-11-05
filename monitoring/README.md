@@ -20,7 +20,7 @@ Catalogue, User, and Shipping are not configured as scrape targets because the c
 4. Create the Grafana admin secret in the `monitoring` namespace before applying the stack. Generate a unique password locally and do not commit it:
 
 ```bash
-kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+kubectl apply -f monitoring/kubernetes/namespace.yaml
 kubectl -n monitoring create secret generic grafana-admin \
   --from-literal=admin-password='REPLACE_WITH_A_UNIQUE_STRONG_PASSWORD'
 ```
