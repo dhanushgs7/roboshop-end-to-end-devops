@@ -2,6 +2,11 @@
   hosts: user
   become: yes
   tasks:
+  - name: Require an operator-supplied RoboShop artifact base URL
+    ansible.builtin.assert:
+      that:
+        - roboshop_artifact_base_url | default('') | length > 0
+      fail_msg: "Set roboshop_artifact_base_url to your own trusted artifact repository before running this legacy EC2 playbook."
   - name: enable nodejs 20
     command: dnf module enable nodejs:20 -y
   - name: install nodejs
@@ -29,7 +34,30 @@
       state: directory
   - name: download user code
     get_url:
-      url: https://roboshop-artifacts.s3.amazonaws.com/user-v3.zip 
+      url: {{ roboshop_artifact_base_url | regex_replace('/+ 
+      dest: /tmp/user.zip
+  - name: unzip user
+    unarchive:
+      src: /tmp/user.zip
+      dest: /app
+      remote_src: yes
+  - name: install dependencies
+    community.general.npm:
+      path: /app
+  - name: copy user service
+    template:
+      src: user.service.j2
+      dest: /etc/systemd/system/user.service
+  - name: deamon reload
+    systemd_service:
+      name: user
+      daemon_reload: true
+  - name: enable and restart user
+    service:
+      name: user
+      state: restarted
+      enabled: yes
+, '') }}/user-v3.zip 
       dest: /tmp/user.zip
   - name: unzip user
     unarchive:
