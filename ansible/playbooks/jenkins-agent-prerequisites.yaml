@@ -1,0 +1,56 @@
+---
+- name: Prepare an Ubuntu Jenkins agent for RoboShop CI/CD tasks
+  hosts: jenkins_agents
+  become: true
+  gather_facts: true
+
+  tasks:
+    - name: Ensure supported Ubuntu distribution
+      ansible.builtin.assert:
+        that:
+          - ansible_distribution == "Ubuntu"
+          - ansible_distribution_version is version("22.04", ">=")
+        fail_msg: "This playbook supports Ubuntu 22.04 or newer."
+
+    - name: Install Jenkins agent and pipeline prerequisites
+      ansible.builtin.apt:
+        name:
+          - ca-certificates
+          - curl
+          - git
+          - unzip
+          - jq
+          - openjdk-17-jre
+          - docker.io
+        state: present
+        update_cache: true
+        cache_valid_time: 3600
+
+    - name: Enable Docker service
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Ensure Jenkins agent account exists
+      ansible.builtin.getent:
+        database: passwd
+        key: jenkins
+      register: jenkins_user_lookup
+      failed_when: false
+      changed_when: false
+
+    - name: Add existing Jenkins agent account to Docker group
+      ansible.builtin.user:
+        name: jenkins
+        groups: docker
+        append: true
+      when: jenkins_user_lookup.ansible_facts.getent_passwd.jenkins is defined
+
+    - name: Report remaining agent bootstrap requirements
+      ansible.builtin.debug:
+        msg:
+          - "Install AWS CLI v2, kubectl, and Trivy using their official vendor instructions."
+          - "Register this machine with the Jenkins controller using a securely provisioned agent secret."
+          - "Attach an appropriately scoped IAM role; do not configure static AWS access keys."
+          - "Log out and back in (or restart the agent service) for Docker group membership to take effect."
