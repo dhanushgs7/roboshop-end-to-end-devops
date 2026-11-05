@@ -9,8 +9,9 @@ RUN apt-get update \
 COPY requirements.txt .
 COPY payment.ini .
 COPY *.py .
-RUN pip install --no-cache-dir --upgrade pip \
+RUN pip install --no-cache-dir --upgrade pip 'setuptools>=78.1.1' \
     && pip install --no-cache-dir -r requirements.txt \
+    && pip install --no-cache-dir --upgrade --force-reinstall 'setuptools>=78.1.1' \
     && apt-get purge -y --auto-remove build-essential python3-dev \
     && rm -rf /var/lib/apt/lists/*
 EXPOSE 8080
