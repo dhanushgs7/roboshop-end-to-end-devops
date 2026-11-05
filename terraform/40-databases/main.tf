@@ -1,5 +1,5 @@
 resource "aws_instance" "mongodb" {
-  ami                    = data.aws_ami.joindevops.id
+  ami                    = data.aws_ssm_parameter.amazon_linux_2023_ami.value
   instance_type          = "t3.micro"
   vpc_security_group_ids = [local.mongodb_sg_id]
   subnet_id              = local.database_subnet_id
@@ -38,7 +38,7 @@ resource "terraform_data" "mongodb" {
 }
 
 resource "aws_instance" "redis" {
-  ami                    = data.aws_ami.joindevops.id
+  ami                    = data.aws_ssm_parameter.amazon_linux_2023_ami.value
   instance_type          = "t3.micro"
   vpc_security_group_ids = [local.redis_sg_id]
   subnet_id              = local.database_subnet_id
@@ -77,7 +77,7 @@ resource "terraform_data" "redis" {
 }
 
 resource "aws_instance" "rabbitmq" {
-  ami                    = data.aws_ami.joindevops.id
+  ami                    = data.aws_ssm_parameter.amazon_linux_2023_ami.value
   instance_type          = "t3.micro"
   vpc_security_group_ids = [local.rabbitmq_sg_id]
   subnet_id              = local.database_subnet_id
@@ -116,7 +116,7 @@ resource "terraform_data" "rabbitmq" {
 }
 
 resource "aws_instance" "mysql" {
-  ami                    = data.aws_ami.joindevops.id
+  ami                    = data.aws_ssm_parameter.amazon_linux_2023_ami.value
   instance_type          = "t3.micro"
   vpc_security_group_ids = [local.mysql_sg_id]
   subnet_id              = local.database_subnet_id
