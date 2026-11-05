@@ -3,10 +3,23 @@
   connection: local
   vars:
     instances: ["mongodb", "redis", "mysql", "rabbitmq", "catalogue", "user", "cart", "shipping", "payment", "frontend"]
-    image_id: ami-0220d79f3f480ecf5
-    domain_name: daws90s.shop # replace with your domain
-    action: create
+    image_id: "{{ roboshop_legacy_ami_id | default('') }}"
+    domain_name: "{{ roboshop_legacy_domain_name | default('') }}"
+    action: "{{ roboshop_legacy_action | default('create') }}"
   tasks:
+  - name: Require explicit approval before legacy EC2 and Route 53 mutations
+    ansible.builtin.assert:
+      that:
+        - confirm_legacy_ec2_management | default(false) | bool
+        - image_id | length > 0
+        - domain_name | length > 0
+        - action in ["create", "delete"]
+      fail_msg: >-
+        This legacy playbook can create/delete billable EC2 instances and Route 53
+        records. It is disabled by default. Supply confirm_legacy_ec2_management=true,
+        roboshop_legacy_ami_id, roboshop_legacy_domain_name, and an explicit
+        roboshop_legacy_action only after reviewing the AWS account, region,
+        security groups, hosted zone, and expected cost.
   - name: create ec2 instances
     amazon.aws.ec2_instance:
       instance_type: t3.micro
