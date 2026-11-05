@@ -187,6 +187,12 @@ pipeline {
                     # Fail before changing workloads if required credentials are absent or incomplete.
                     kubectl -n "$K8S_NAMESPACE" get secret mysql-credentials >/dev/null
                     kubectl -n "$K8S_NAMESPACE" get secret rabbitmq-credentials >/dev/null
+
+                    # Monitoring is internal-only and requires a pre-created secret.
+                    kubectl -n monitoring get secret grafana-admin >/dev/null || {
+                      echo "Create the grafana-admin secret in namespace monitoring before enabling EKS deployment."
+                      exit 1
+                    }
                     for key in MYSQL_ROOT_PASSWORD MYSQL_PASSWORD DB_PASSWORD; do
                       value="$(kubectl -n "$K8S_NAMESPACE" get secret mysql-credentials -o "jsonpath={.data.$key}")"
                       test -n "$value" || { echo "mysql-credentials is missing key $key"; exit 1; }
@@ -211,11 +217,6 @@ pipeline {
                       kubectl -n "$K8S_NAMESPACE" rollout status "deployment/$service" --timeout=5m
                     done
 
-                    # Monitoring is internal-only and requires a pre-created secret.
-                    kubectl -n monitoring get secret grafana-admin >/dev/null || {
-                      echo "Create the grafana-admin secret in namespace monitoring before enabling EKS deployment."
-                      exit 1
-                    }
                     kubectl apply -f monitoring/kubernetes/monitoring-stack.yaml
                     kubectl -n monitoring rollout status deployment/prometheus --timeout=5m
                     kubectl -n monitoring rollout status deployment/grafana --timeout=5m
