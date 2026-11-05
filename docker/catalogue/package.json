@@ -16,5 +16,14 @@
     "express-pino-logger": "^4.0.0",
     "pino-pretty": "^2.5.0",
     "@instana/collector": "^1.132.2"
+  },
+  "overrides": {
+    "brace-expansion": "2.1.6",
+    "ip-address": "10.3.1",
+    "pacote": "21.5.1",
+    "picomatch": "4.0.4",
+    "semver": "7.5.2",
+    "sigstore": "4.1.1",
+    "tar": "7.5.21"
   }
 }

@@ -33,16 +33,19 @@ jobs:
         working-directory: docker
         run: docker compose --env-file .env.example build --pull
 
-      - name: Scan application images with Trivy
+      - name: Scan all application and monitoring images with Trivy
         env:
           IMAGE_TAG: joindevops
         run: |
-          set -euo pipefail
+          set -uo pipefail
           mkdir -p trivy-reports
-          for service in catalogue user cart payment shipping dispatch frontend mongodb mysql; do
-            image="${IMAGE_TAG}/${service}:v1"
-            echo "Scanning ${image}"
-            docker run --rm \
+          scan_failed=0
+
+          scan_image() {
+            image="$1"
+            report="$2"
+            echo "::group::Scanning ${image}"
+            if docker run --rm \
               -v /var/run/docker.sock:/var/run/docker.sock \
               -v "${PWD}/trivy-reports:/reports" \
               aquasec/trivy:0.76.1 image \
@@ -51,30 +54,27 @@ jobs:
               --severity HIGH,CRITICAL \
               --exit-code 1 \
               --format json \
-              --output "/reports/${service}.json" \
-              "${image}"
+              --output "/reports/${report}.json" \
+              "${image}"; then
+              echo "PASS: ${image}"
+            else
+              echo "::error::HIGH/CRITICAL fixable findings or scan error in ${image}"
+              scan_failed=1
+            fi
+            echo "::endgroup::"
+          }
+
+          for service in catalogue user cart payment shipping dispatch frontend mongodb mysql; do
+            scan_image "${IMAGE_TAG}/${service}:v1" "${service}"
           done
 
-      - name: Scan pinned Prometheus and Grafana images
-        run: |
-          set -euo pipefail
-          for image in prom/prometheus:v3.13.5 grafana/grafana:13.3.0; do
-            docker pull "${image}"
-            name="${image%%:*}"
-            name="${name##*/}"
-            echo "Scanning ${image}"
-            docker run --rm \
-              -v /var/run/docker.sock:/var/run/docker.sock \
-              -v "${PWD}/trivy-reports:/reports" \
-              aquasec/trivy:0.76.1 image \
-              --scanners vuln \
-              --ignore-unfixed \
-              --severity HIGH,CRITICAL \
-              --exit-code 0 \
-              --format json \
-              --output "/reports/${name}.json" \
-              "${image}"
-          done
+          scan_image "prom/prometheus:v3.13.5" "prometheus"
+          scan_image "grafana/grafana:13.3.0" "grafana"
+
+          if [ "${scan_failed}" -ne 0 ]; then
+            echo "::error::One or more images have fixable HIGH/CRITICAL findings or could not be scanned."
+            exit 1
+          fi
 
       - name: Upload Trivy reports
         if: always()

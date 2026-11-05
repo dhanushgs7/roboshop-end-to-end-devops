@@ -3,7 +3,7 @@ WORKDIR /app
 
 RUN apt-get update \
     && apt-get upgrade -y \
-    && apt-get install -y --no-install-recommends build-essential python3-dev \
+    && apt-get install -y --no-install-recommends build-essential python3-dev libexpat1 \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
