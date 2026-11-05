@@ -1,5 +1,18 @@
 # Ansible usage and safety
 
+## Jenkins controller preparation
+
+The `playbooks/jenkins-controller.yaml` playbook installs the Jenkins LTS package and Java 17 on an Ubuntu 22.04+ controller host. It enables the Jenkins service but does not configure public ingress, install plugins, create credentials, or expose the initial administrator password.
+
+From the `ansible/` directory, after reviewing the inventory:
+
+```bash
+ansible-playbook --syntax-check playbooks/jenkins-controller.yaml
+ansible-playbook playbooks/jenkins-controller.yaml
+```
+
+Restrict TCP 8080 to trusted networks and complete Jenkins' initial setup through the UI. Install the Pipeline and Git plugins and configure a securely authenticated agent.
+
 ## Jenkins agent preparation
 
 The `playbooks/jenkins-agent-prerequisites.yaml` playbook prepares an Ubuntu 22.04+ x86_64 Jenkins agent with Java 17, Git, Docker Engine, Docker Compose v2, AWS CLI v2, kubectl (default v1.34.0; override `kubectl_version` to match your EKS minor version), Trivy, and common utilities.
@@ -7,8 +20,8 @@ The `playbooks/jenkins-agent-prerequisites.yaml` playbook prepares an Ubuntu 22.
 1. From the repository root, copy `ansible/inventory.ini.example` to `ansible/inventory.ini` and replace the example host with your Jenkins agent's private DNS name or IP.
 2. Verify SSH access and privilege escalation for the `ansible_user`.
 3. Change into `ansible/` so `ansible.cfg` and its relative inventory path are loaded.
-4. Run a syntax check: `ansible-playbook --syntax-check playbooks/jenkins-agent-prerequisites.yaml`.
-5. Review the target hosts, then run `ansible-playbook playbooks/jenkins-agent-prerequisites.yaml`. The playbook changes the target host; do not run it against production without reviewing the tasks first.
+4. Run syntax checks: `ansible-playbook --syntax-check playbooks/jenkins-agent-prerequisites.yaml` and `ansible-playbook --syntax-check playbooks/jenkins-controller.yaml`.
+5. Review the target hosts, then run the relevant controller or agent playbook. The playbook changes the target host; do not run it against production without reviewing the tasks first.
 
 The playbook does not install or register Jenkins itself, configure controller credentials, create cloud resources, or assign IAM permissions. Install AWS CLI v2, kubectl, and Trivy from their official sources and register the agent using a securely handled Jenkins secret. Prefer an instance profile/IAM role over static AWS keys.
 
