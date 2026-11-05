@@ -1,0 +1,47 @@
+name: Jenkins Pipeline Static Validation
+
+on:
+  push:
+    paths:
+      - "jenkins/**"
+      - ".github/workflows/jenkins-validation.yml"
+  pull_request:
+    paths:
+      - "jenkins/**"
+      - ".github/workflows/jenkins-validation.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Check Jenkinsfile syntax and safety gates
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Groovy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y groovy
+
+      - name: Parse Jenkinsfile as Groovy
+        run: |
+          groovy -e 'new GroovyShell().parse(new File("jenkins/Jenkinsfile")); println "Jenkinsfile Groovy syntax is valid."'
+
+      - name: Verify deployment safety gates
+        run: |
+          set -eu
+          grep -q "PUSH_IMAGES" jenkins/Jenkinsfile
+          grep -q "DEPLOY_TO_EKS" jenkins/Jenkinsfile
+          grep -q 'DEPLOY_TO_EKS requires PUSH_IMAGES=true' jenkins/Jenkinsfile
+          ! grep -qE 'terraform[[:space:]]+apply' jenkins/Jenkinsfile
+          ! grep -qE '(^|[[:space:]])helm([[:space:]]|$)' jenkins/Jenkinsfile
+          echo "Opt-in image push/deployment gates are present; Terraform apply and Helm are absent."
