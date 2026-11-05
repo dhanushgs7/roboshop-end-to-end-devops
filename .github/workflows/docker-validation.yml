@@ -31,7 +31,7 @@ jobs:
 
       - name: Build all application images from source
         working-directory: docker
-        run: docker compose --env-file .env.example build
+        run: docker compose --env-file .env.example build --pull
 
       - name: Scan application images with Trivy
         env:
@@ -49,7 +49,7 @@ jobs:
               --scanners vuln \
               --ignore-unfixed \
               --severity HIGH,CRITICAL \
-              --exit-code 0 \
+              --exit-code 1 \
               --format json \
               --output "/reports/${service}.json" \
               "${image}"
