@@ -68,6 +68,19 @@ pipeline {
             }
         }
 
+        stage('Cart Unit Tests') {
+            steps {
+                sh '''
+                    set -eu
+                    docker run --rm \
+                      -v "$WORKSPACE/docker/cart:/app" \
+                      -w /app \
+                      node:20-alpine \
+                      npm test
+                '''
+            }
+        }
+
         stage('Node.js Source Validation') {
             steps {
                 sh '''
