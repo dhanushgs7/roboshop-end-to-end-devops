@@ -73,15 +73,17 @@ async function main() {
     });
 
     await check('Shipping health endpoint', async () => {
-      const r = await request(`${urls.shipping}/health`);
-      assert.equal(r.status, 200);
-      assert.equal(r.body, 'OK');
+      await waitFor('Shipping health', async () => {
+        const r = await request(`${urls.shipping}/health`);
+        return r.status === 200 && r.body === 'OK';
+      });
     });
 
     await check('Payment health endpoint', async () => {
-      const r = await request(`${urls.payment}/health`);
-      assert.equal(r.status, 200);
-      assert.equal(r.body, 'OK');
+      await waitFor('Payment health', async () => {
+        const r = await request(`${urls.payment}/health`);
+        return r.status === 200 && r.body === 'OK';
+      });
     });
 
     let product;
@@ -200,7 +202,7 @@ async function main() {
     for (const id of [cartId, checkoutUserId].filter(Boolean)) {
       try {
         const cleanup = await request(`${urls.cart}/cart/${encodeURIComponent(id)}`, { method: 'DELETE' });
-        if (![200, 404].includes(cleanup.status)) {
+        if (cleanup.status !== 200 && cleanup.status !== 404) {
           console.warn(`WARN  cart cleanup for ${id} returned HTTP ${cleanup.status}`);
         }
       } catch (error) {
