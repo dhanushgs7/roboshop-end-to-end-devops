@@ -79,5 +79,8 @@ jobs:
           cache: true
           cache-dependency-path: docker/dispatch/go.mod
 
+      - name: Resolve Go module checksums
+        run: go mod tidy
+
       - name: Run dispatch unit tests
         run: go test -race -cover ./...
