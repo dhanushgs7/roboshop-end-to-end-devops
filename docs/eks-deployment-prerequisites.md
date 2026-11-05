@@ -7,7 +7,7 @@ The Jenkins deployment stage is deliberately opt-in. It assumes the EKS platform
 Before selecting `DEPLOY_TO_EKS`, verify all of the following:
 
 - The EKS cluster named by `EKS_CLUSTER_NAME` exists in `AWS_REGION`.
-- The Jenkins agent's IAM identity can call ECR login/push, EKS DescribeCluster, and obtain Kubernetes access through the cluster's access configuration.
+- The Jenkins agent's IAM role can call ECR login/push and EKS DescribeCluster. Set `deployment_principal_arn` in `terraform/100-eks` to this IAM role ARN and apply the reviewed Terraform change to create a namespace-scoped EKS access entry for `roboshop` and `monitoring`.
 - The cluster has at least one Ready worker node with enough CPU and memory for the application.
 - The Amazon EBS CSI driver is installed and healthy.
 - The `gp3-csi` StorageClass exists and provisions EBS volumes in the worker-node Availability Zones.
