@@ -1,6 +1,10 @@
 
 data "aws_caller_identity" "current" {}
 
+data "aws_iam_session_context" "current" {
+  arn = data.aws_caller_identity.current.arn
+}
+
 data "aws_vpc" "selected" {
   id = var.vpc_id
 }
@@ -154,7 +158,7 @@ resource "aws_eks_cluster" "main" {
 
 resource "aws_eks_access_entry" "current_admin" {
   cluster_name  = aws_eks_cluster.main.name
-  principal_arn = data.aws_caller_identity.current.arn
+  principal_arn = data.aws_iam_session_context.current.issuer_arn
   type          = "STANDARD"
 }
 
