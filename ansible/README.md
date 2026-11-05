@@ -2,7 +2,7 @@
 
 ## Jenkins agent preparation
 
-The `playbooks/jenkins-agent-prerequisites.yaml` playbook prepares an Ubuntu 22.04+ Jenkins agent with Java 17, Git, Docker, and common utilities.
+The `playbooks/jenkins-agent-prerequisites.yaml` playbook prepares an Ubuntu 22.04+ x86_64 Jenkins agent with Java 17, Git, Docker Engine, Docker Compose v2, AWS CLI v2, kubectl (default v1.34.0; override `kubectl_version` to match your EKS minor version), Trivy, and common utilities.
 
 1. Create an inventory file named `ansible/inventory.ini` (it is intentionally not committed) with a `[jenkins_agents]` group.
 2. Verify SSH access and privilege escalation.
