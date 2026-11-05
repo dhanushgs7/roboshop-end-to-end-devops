@@ -11,8 +11,8 @@
       ansible.builtin.assert:
         that:
           - ansible_distribution == "Ubuntu"
-          - ansible_distribution_version is version("22.04", ">=")
-        fail_msg: "This playbook supports Ubuntu 22.04 or newer."
+          - ansible_distribution_version is version("24.04", ">=")
+        fail_msg: "This playbook supports Ubuntu 24.04 or newer."
 
     - name: Install Jenkins agent and pipeline prerequisites
       ansible.builtin.apt:
@@ -22,7 +22,7 @@
           - git
           - unzip
           - jq
-          - openjdk-17-jre
+          - openjdk-21-jre
           - docker.io
           - docker-compose-v2
         state: present
