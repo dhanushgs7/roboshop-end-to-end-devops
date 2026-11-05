@@ -220,6 +220,16 @@ pipeline {
                     for service in $SERVICES; do
                       kubectl -n "$K8S_NAMESPACE" rollout status "deployment/$service" --timeout=5m
                     done
+
+                    # Monitoring is internal-only and requires a pre-created secret.
+                    kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+                    kubectl -n monitoring get secret grafana-admin >/dev/null || {
+                      echo "Create the grafana-admin secret in namespace monitoring before enabling EKS deployment."
+                      exit 1
+                    }
+                    kubectl apply -f monitoring/kubernetes/monitoring-stack.yaml
+                    kubectl -n monitoring rollout status deployment/prometheus --timeout=5m
+                    kubectl -n monitoring rollout status deployment/grafana --timeout=5m
                 '''
             }
         }
