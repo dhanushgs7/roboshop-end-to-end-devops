@@ -1,5 +1,5 @@
 resource "aws_instance" "bastion" {
-  ami                    = data.aws_ami.joindevops.id
+  ami                    = data.aws_ssm_parameter.amazon_linux_2023_ami.value
   instance_type          = "t3.micro"
   vpc_security_group_ids = [local.bastion_sg_id]
   subnet_id              = local.public_subnet_id
