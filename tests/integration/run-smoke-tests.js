@@ -9,6 +9,7 @@ const urls = {
   user: process.env.USER_URL || 'http://localhost:18082',
   shipping: process.env.SHIPPING_URL || 'http://localhost:18083',
   payment: process.env.PAYMENT_URL || 'http://localhost:18084',
+  dispatch: process.env.DISPATCH_URL || 'http://localhost:18085',
 };
 
 const cartId = `ci-smoke-${Date.now()}-${crypto.randomBytes(4).toString('hex')}`;
@@ -83,6 +84,13 @@ async function main() {
       await waitFor('Payment health', async () => {
         const r = await request(`${urls.payment}/health`);
         return r.status === 200 && r.body === 'OK';
+      });
+    });
+
+    await check('Dispatch worker is connected to RabbitMQ', async () => {
+      await waitFor('Dispatch readiness', async () => {
+        const r = await request(`${urls.dispatch}/readyz`);
+        return r.status === 200 && r.body === 'ready';
       });
     });
 
