@@ -147,7 +147,53 @@ async function main() {
       assert.match(paymentMetrics.raw, /sold_count/);
     });
 
-    console.log('\nAll RoboShop integration smoke tests passed.');
+    if (process.env.RUN_FULL_CHECKOUT === 'true') {
+      const username = `ci-checkout-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
+      const password = crypto.randomBytes(16).toString('hex');
+      await check('Registered-user checkout creates order history and clears the cart', async () => {
+        const registered = await request(`${urls.user}/register`, {
+          method: 'POST',
+          body: JSON.stringify({ name: username, password, email: `${username}@example.invalid` }),
+        });
+        assert.equal(registered.status, 200, registered.raw);
+
+        const login = await request(`${urls.user}/login`, {
+          method: 'POST',
+          body: JSON.stringify({ name: username, password }),
+        });
+        assert.equal(login.status, 200, login.raw);
+
+        const added = await request(
+          `${urls.cart}/add/${encodeURIComponent(username)}/${encodeURIComponent(product.sku)}/1`
+        );
+        assert.equal(added.status, 200, added.raw);
+
+        const shipping = await request(
+          `${urls.shipping}/confirm/${encodeURIComponent(username)}`,
+          { method: 'POST', body: JSON.stringify({ distance: 100, cost: 5, location: 'CI Checkout Test' }) }
+        );
+        assert.equal(shipping.status, 200, shipping.raw);
+
+        const cart = await request(`${urls.cart}/cart/${encodeURIComponent(username)}`);
+        assert.equal(cart.status, 200);
+
+        const paid = await request(`${urls.payment}/pay/${encodeURIComponent(username)}`, {
+          method: 'POST',
+          body: JSON.stringify(cart.body),
+        });
+        assert.equal(paid.status, 200, paid.raw);
+        assert.ok(paid.body.orderid, 'Payment response did not contain an order ID');
+
+        const clearedCart = await request(`${urls.cart}/cart/${encodeURIComponent(username)}`);
+        assert.equal(clearedCart.status, 404, 'Cart was not deleted after payment');
+
+        const history = await request(`${urls.user}/history/${encodeURIComponent(username)}`);
+        assert.equal(history.status, 200, history.raw);
+        assert.ok(history.body.history.some(order => order.orderid === paid.body.orderid), 'Order was not saved in user history');
+      });
+    }
+
+    console.log('\nAll enabled RoboShop integration tests passed.');
   } finally {
     try {
       const cleanup = await request(`${urls.cart}/cart/${encodeURIComponent(cartId)}`, { method: 'DELETE' });
