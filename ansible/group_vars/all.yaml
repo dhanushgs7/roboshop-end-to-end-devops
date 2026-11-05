@@ -1,12 +1,7 @@
+# Override service endpoints in inventory or environment-specific group_vars.
+# Do not put trainer domains, credentials, or account-specific values in this shared file.
 ansible_user: ec2-user
-MONGODB_HOST: mongodb.daws90s.shop
-REDIS_HOST: redis.daws90s.shop
-MYSQL_HOST: mysql.daws90s.shop 
-RABBITMQ_HOST: rabbitmq.daws90s.shop 
-CATALOGUE_HOST: catalogue.daws90s.shop
-USER_HOST: user.daws90s.shop
-CART_HOST: cart.daws90s.shop
-SHIPPING_HOST: shipping.daws90s.shop
-PAYMENT_HOST: payment.daws90s.shop
+
+# Credentials are read from the environment at runtime and are never committed.
 RABBITMQ_PASSWORD: "{{ lookup('ansible.builtin.env', 'RABBITMQ_PASSWORD') }}"
 MYSQL_ROOT_PASSWORD: "{{ lookup('ansible.builtin.env', 'MYSQL_ROOT_PASSWORD') }}"
