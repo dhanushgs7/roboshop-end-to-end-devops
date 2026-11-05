@@ -55,6 +55,34 @@ jobs:
       - name: Wait for services and run integration smoke tests
         run: npm --prefix tests/integration run test:integration
 
+      - name: Verify Dispatch consumes a RabbitMQ order event
+        run: |
+          set -eu
+          docker exec payment python -c '
+          import json, os, pika
+          credentials = pika.PlainCredentials("roboshop", os.environ["AMQP_PASS"])
+          connection = pika.BlockingConnection(pika.ConnectionParameters(host="rabbitmq", credentials=credentials))
+          channel = connection.channel()
+          channel.exchange_declare(exchange="robot-shop", exchange_type="direct", durable=True)
+          channel.queue_declare(queue="orders", durable=True)
+          channel.queue_bind(queue="orders", exchange="robot-shop", routing_key="orders")
+          message = {"orderid": "ci-dispatch-smoke", "user": "ci", "cart": {"items": []}}
+          channel.basic_publish(exchange="robot-shop", routing_key="orders",
+                                properties=pika.BasicProperties(delivery_mode=2),
+                                body=json.dumps(message).encode())
+          connection.close()
+          '
+          for attempt in $(seq 1 30); do
+            if docker logs dispatch 2>&1 | grep -q "dispatch accepted order_id=ci-dispatch-smoke"; then
+              echo "Dispatch consumed and acknowledged the synthetic CI order."
+              exit 0
+            fi
+            sleep 1
+          done
+          docker logs dispatch
+          echo "Dispatch did not consume the synthetic CI order within 30 seconds."
+          exit 1
+
       - name: Collect service status and logs on failure
         if: failure()
         run: |
