@@ -31,7 +31,7 @@ GitHub
   |
   v
 Jenkins CI/CD
-  |-- payment service unit tests
+  |-- User, Cart, Payment, Shipping and Dispatch unit tests
   |-- Docker image build
   |-- Trivy vulnerability scan
   |-- push images to AWS ECR
