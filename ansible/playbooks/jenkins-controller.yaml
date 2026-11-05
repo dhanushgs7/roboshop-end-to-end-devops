@@ -9,14 +9,14 @@
       ansible.builtin.assert:
         that:
           - ansible_distribution == "Ubuntu"
-          - ansible_distribution_version is version("22.04", ">=")
-        fail_msg: "This playbook supports Ubuntu 22.04 or newer."
+          - ansible_distribution_version is version("24.04", ">=")
+        fail_msg: "This playbook supports Ubuntu 24.04 or newer."
 
     - name: Install Jenkins runtime prerequisites
       ansible.builtin.apt:
         name:
           - fontconfig
-          - openjdk-17-jre
+          - openjdk-21-jre
           - curl
           - ca-certificates
         state: present
