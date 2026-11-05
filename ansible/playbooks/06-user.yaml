@@ -57,26 +57,3 @@
       name: user
       state: restarted
       enabled: yes
-, '') }}/user-v3.zip 
-      dest: /tmp/user.zip
-  - name: unzip user
-    unarchive:
-      src: /tmp/user.zip
-      dest: /app
-      remote_src: yes
-  - name: install dependencies
-    community.general.npm:
-      path: /app
-  - name: copy user service
-    template:
-      src: user.service.j2
-      dest: /etc/systemd/system/user.service
-  - name: deamon reload
-    systemd_service:
-      name: user
-      daemon_reload: true
-  - name: enable and restart user
-    service:
-      name: user
-      state: restarted
-      enabled: yes
