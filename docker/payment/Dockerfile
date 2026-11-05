@@ -9,7 +9,7 @@ RUN apt-get update \
 COPY requirements.txt .
 COPY payment.ini .
 COPY *.py .
-RUN pip install --no-cache-dir --upgrade pip \
+RUN pip install --no-cache-dir --upgrade pip 'setuptools>=78.1.1' \
     && pip install --no-cache-dir -r requirements.txt \
     && apt-get purge -y --auto-remove build-essential python3-dev \
     && rm -rf /var/lib/apt/lists/*
