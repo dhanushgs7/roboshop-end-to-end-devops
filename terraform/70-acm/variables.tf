@@ -6,10 +6,6 @@ variable "environment" {
   default = "dev"
 }
 
-variable "domain_name" {
-  default = "daws90s.shop"
-}
+variable "domain_name" {}
 
-variable "zone_id" {
-  default = "Z07086101C1CVP7AT2UK4"
-}
+variable "zone_id" {}
