@@ -68,6 +68,19 @@ pipeline {
             }
         }
 
+        stage('Dispatch Unit Tests') {
+            steps {
+                sh '''
+                    set -eu
+                    docker run --rm \
+                      -v "$WORKSPACE/docker/dispatch:/app" \
+                      -w /app \
+                      golang:1.23-alpine \
+                      sh -c "go mod tidy && go test ./..."
+                '''
+            }
+        }
+
         stage('User Unit Tests') {
             steps {
                 sh '''
