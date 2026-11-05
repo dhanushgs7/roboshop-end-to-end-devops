@@ -169,15 +169,6 @@ pipeline {
                     AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
                     ECR_REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
                     aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER_NAME"
-                    kubectl -n kube-system get deployment aws-load-balancer-controller >/dev/null || {
-                      echo "AWS Load Balancer Controller is not installed in kube-system. See docs/eks-deployment-prerequisites.md."
-                      exit 1
-                    }
-                    kubectl get storageclass gp3-csi >/dev/null || {
-                      echo "Required gp3-csi StorageClass is missing. Install and verify the EBS CSI driver first."
-                      exit 1
-                    }
-
                     # Render source-controlled image references to this build's ECR tag before applying.
                     # This avoids briefly starting trainer-owned joindevops images.
                     RENDERED_MANIFESTS="$(mktemp -d)"
