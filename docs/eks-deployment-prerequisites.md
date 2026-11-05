@@ -33,8 +33,9 @@ The current manifests expect these exact secret names and keys:
 |---|---|---|
 | `mysql-credentials` | `MYSQL_ROOT_PASSWORD`, `MYSQL_PASSWORD`, `DB_PASSWORD` | MySQL and Shipping |
 | `rabbitmq-credentials` | `RABBITMQ_DEFAULT_USER`, `RABBITMQ_DEFAULT_PASS` | RabbitMQ and Payment |
+| `grafana-admin` (namespace `monitoring`) | `admin-password` | Grafana admin login |
 
-The three MySQL keys must be set to the intended values. `MYSQL_PASSWORD` and `DB_PASSWORD` represent the same application database password in the current manifests.
+The three MySQL keys must be set to the intended values. `MYSQL_PASSWORD` and `DB_PASSWORD` represent the same application database password in the current manifests. Create the `grafana-admin` secret in the `monitoring` namespace as described in `monitoring/README.md`; the Jenkins deployment stage checks for it before applying the monitoring stack.
 
 Example command shape (replace environment variable values securely before running):
 
