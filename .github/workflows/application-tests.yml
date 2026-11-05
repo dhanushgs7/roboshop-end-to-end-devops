@@ -12,6 +12,8 @@ on:
       - "docker/shipping/**"
       - ".github/workflows/application-tests.yml"
 
+  workflow_dispatch:
+
 permissions:
   contents: read
 
