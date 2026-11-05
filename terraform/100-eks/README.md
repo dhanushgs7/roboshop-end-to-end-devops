@@ -10,6 +10,7 @@ Supply the following values in a local, ignored `terraform.tfvars` file:
 - `private_subnet_ids` — at least two private subnets across AZs, with NAT or VPC endpoints for ECR and AWS APIs
 - `public_subnet_ids` — at least two public subnets across AZs for internet-facing ALB discovery
 - `admin_cidr` — a trusted public IPv4 /32 for the EKS public API endpoint
+- `deployment_principal_arn` (optional) — the Jenkins IAM role ARN. When supplied, Terraform grants `AmazonEKSAdminPolicy` scoped only to the `roboshop` and `monitoring` namespaces.
 
 No account-specific VPC, subnet, state bucket, or CIDR values are embedded in this component. See [the Terraform guide](../README.md) for backend configuration.
 
@@ -23,7 +24,7 @@ No account-specific VPC, subnet, state bucket, or CIDR values are embedded in th
 - EKS OIDC provider and scoped EBS CSI controller IAM role
 - AWS EBS CSI EKS add-on required by the `gp3-csi` StorageClass
 
-The AWS Load Balancer Controller remains a separate prerequisite for the project's ALB Ingress. Install it using the official AWS EKS procedure and a least-privilege IAM policy. Helm is not used in this project.
+Create the `roboshop` and `monitoring` namespaces once with a cluster-administrator identity before using the namespace-scoped Jenkins role. The Jenkins role cannot create namespaces or manage cluster-scoped resources.\n\nThe AWS Load Balancer Controller remains a separate prerequisite for the project's ALB Ingress. Install it using the official AWS EKS procedure and a least-privilege IAM policy. Helm is not used in this project.
 
 ## Network checks
 
