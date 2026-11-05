@@ -36,7 +36,7 @@
       state: directory
   - name: download payment
     get_url:
-      url: {{ roboshop_artifact_base_url | regex_replace('/+ 
+      url: "{{ roboshop_artifact_base_url }}/payment-v3.zip"
       dest: /tmp/payment.zip
   - name: unzip payment
     unarchive:
