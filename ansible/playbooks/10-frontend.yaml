@@ -27,7 +27,7 @@
       state: directory
   - name: download frontend
     get_url:
-      url: {{ roboshop_artifact_base_url | regex_replace('/+ 
+      url: "{{ roboshop_artifact_base_url }}/frontend-v3.zip"
       dest: /tmp/frontend.zip
   - name: unzip frontend
     unarchive:
