@@ -26,16 +26,13 @@ variable "kubernetes_version" {
 }
 
 variable "vpc_id" {
-  type    = string
-  default = "vpc-00e7139437975be1a"
+  description = "ID of the existing VPC for the EKS cluster"
+  type        = string
 }
 
 variable "private_subnet_ids" {
-  type = list(string)
-  default = [
-    "subnet-0877a0e382708af4e",
-    "subnet-08c8de13e77ffb359"
-  ]
+  description = "Private subnets in at least two Availability Zones with outbound access to ECR and AWS APIs"
+  type        = list(string)
 
   validation {
     condition     = length(var.private_subnet_ids) >= 2
@@ -44,11 +41,13 @@ variable "private_subnet_ids" {
 }
 
 variable "public_subnet_ids" {
-  type = list(string)
-  default = [
-    "subnet-0bb8e47f90f5f8097",
-    "subnet-0918ed91c3ff270f0"
-  ]
+  description = "Public subnets in at least two Availability Zones for internet-facing AWS load balancers"
+  type        = list(string)
+
+  validation {
+    condition     = length(var.public_subnet_ids) >= 2
+    error_message = "Provide public subnets in at least two Availability Zones."
+  }
 }
 
 variable "admin_cidr" {
