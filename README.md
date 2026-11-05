@@ -6,7 +6,7 @@ A source-built RoboShop microservices project that demonstrates the path from ap
 
 ## EKS deployment prerequisites
 
-The Jenkins EKS deployment stage is opt-in and expects a pre-provisioned cluster, EBS CSI driver with the `gp3-csi` StorageClass, AWS Load Balancer Controller, and Kubernetes credentials. Before applying workloads, it verifies the required MySQL and RabbitMQ Secret names and keys and refuses to deploy if any trainer-owned image reference remains after rendering. Review [the EKS deployment prerequisites](docs/eks-deployment-prerequisites.md) before enabling `DEPLOY_TO_EKS`. Terraform provisioning is a separate reviewed operation; application pushes never run `terraform apply`.
+The Jenkins EKS deployment stage is opt-in and expects a pre-provisioned cluster, EBS CSI driver with the `gp3-csi` StorageClass, AWS Load Balancer Controller, Kubernetes credentials, and a `grafana-admin` Secret in the `monitoring` namespace. Before applying workloads, it verifies the required MySQL and RabbitMQ Secret names and keys and refuses to deploy if any trainer-owned image reference remains after rendering. Review [the EKS deployment prerequisites](docs/eks-deployment-prerequisites.md) before enabling `DEPLOY_TO_EKS`. Terraform provisioning is a separate reviewed operation; application pushes never run `terraform apply`.
 
 ## Architecture
 
@@ -41,6 +41,10 @@ Amazon EKS
   |
   v
 RoboShop application
+
+Monitoring (separate namespace)
+  |-- Prometheus scrapes Cart and Payment metrics
+  |-- Grafana dashboard provisioned from repository JSON
 ```
 
 Terraform provisions AWS infrastructure separately from application deployments. Infrastructure changes must be reviewed before `terraform apply`; application pushes must not automatically create or destroy AWS infrastructure.
@@ -55,8 +59,10 @@ Terraform provisions AWS infrastructure separately from application deployments.
 | `ansible/` | Ansible configuration and playbooks |
 | `terraform/` | AWS infrastructure components, including `100-eks` |
 | `kubernetes/` | Kubernetes Deployments, Services, storage and ingress resources |
-| `docker/payment/tests/` | Payment service unit tests |\n| `docker/shipping/src/test/` | Shipping service controller unit tests |
-| `monitoring/` | Prometheus scrape configuration and Grafana dashboard starter |
+| `docker/payment/tests/` | Payment service unit tests |
+| `docker/shipping/src/test/` | Shipping service controller unit tests |
+| `monitoring/` | Prometheus and Grafana configuration, dashboard and Kubernetes deployment |
+| `tests/integration/` | Post-deployment service integration smoke tests |
 | `docs/` | Architecture and operational documentation |
 
 The application build contexts currently present under `docker/` are `catalogue`, `user`, `cart`, `payment`, `shipping`, `frontend`, `mongodb` and `mysql`. Redis and RabbitMQ use upstream images.
@@ -117,7 +123,7 @@ No AWS infrastructure is created by the local Compose workflow or the CI validat
 ## Important implementation notes
 
 - Dispatch source was not present in the trainer RoboShop source repositories inspected for this project. It is not represented by fabricated application code; add it only when a legitimate source package is available.
-- Payment and shipping service unit tests are wired into GitHub Actions and Jenkins. Catalogue, User and Cart currently receive JavaScript syntax validation in CI; automated behavioral unit/integration/regression coverage for these Node.js services and the full checkout flow remains to be added. A green Compose health check is not a substitute for successful end-to-end checkout tests.
+- Payment and shipping service unit tests are wired into GitHub Actions and Jenkins. Catalogue, User and Cart receive JavaScript syntax validation in CI. A separate post-deployment smoke suite in `tests/integration/` verifies service readiness, catalogue-to-cart behavior, Redis persistence, shipping-to-cart behavior, payment validation, and Prometheus metrics. It is intentionally not run by CI because it requires a deployed environment; see its README for port-forwarding and execution instructions. Full registered-user checkout and RabbitMQ order-consumer regression remain deployment-stage validation work.
 - The User service must hash passwords and must never return password values in API responses before production use.
 - Use a dedicated, least-privilege CI identity for ECR push and EKS deployment. Prefer short-lived AWS role credentials over static access keys.
 
