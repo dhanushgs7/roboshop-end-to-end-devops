@@ -81,6 +81,19 @@ services:
       - user
       - rabbitmq
 
+  dispatch:
+    build: ./dispatch
+    image: joindevops/dispatch:v1
+    container_name: dispatch
+    environment:
+      AMQP_HOST: rabbitmq
+      AMQP_PORT: 5672
+      AMQP_USER: roboshop
+      AMQP_PASS: "${RABBITMQ_PASSWORD:?Set RABBITMQ_PASSWORD in .env}"
+      HTTP_PORT: 8080
+    depends_on:
+      - rabbitmq
+
   redis:
     image: redis:7
     container_name: redis
