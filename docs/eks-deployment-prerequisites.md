@@ -26,7 +26,7 @@ kubectl apply -f kubernetes/namespace.yaml
 kubectl apply -f monitoring/kubernetes/namespace.yaml
 ```
 
-Before handing access to Jenkins, an administrator must also verify the AWS Load Balancer Controller is healthy in `kube-system` and that the `gp3-csi` StorageClass exists. The Jenkins role is intentionally namespace-scoped and does not read or mutate cluster-scoped resources.
+Before handing access to Jenkins, an administrator must also verify the AWS Load Balancer Controller is healthy in `kube-system` and that the `gp3-csi` StorageClass exists. The Jenkins role is intentionally namespace-scoped and does not read or mutate cluster-scoped resources. The administrator must verify the StorageClass and AWS Load Balancer Controller before handing deployment access to Jenkins.
 
 Supply credentials through a secure local shell or approved secret manager. Do not commit the values or put them in Jenkinsfile, YAML, GitHub Actions logs, or shell history.
 
@@ -75,9 +75,9 @@ The pipeline:
 
 1. Builds and scans all eight application images from this repository's source.
 2. When `PUSH_IMAGES=true`, creates missing ECR repositories and pushes immutable build-specific tags.
-3. When `DEPLOY_TO_EKS=true`, checks the cluster, secrets, storage class, and load balancer controller.
+3. When `DEPLOY_TO_EKS=true`, connects to the configured cluster and checks the required namespace-scoped Secrets and keys. StorageClass and AWS Load Balancer Controller readiness must be verified by the cluster administrator before deployment.
 4. Renders the Kubernetes manifests to use the exact ECR image tag from the current build.
-5. Applies the namespace, data services, application services, frontend and Ingress.
+5. Applies data services, application services, frontend and Ingress into the pre-created `roboshop` namespace, then applies the monitoring stack into the pre-created `monitoring` namespace.
 6. Waits for each application Deployment rollout.
 
 Terraform provisioning remains a separate, manually reviewed operation. A source-code push never runs `terraform apply`.
