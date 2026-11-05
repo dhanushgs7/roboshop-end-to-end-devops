@@ -36,6 +36,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends \
         ca-certificates \
         libexpat1 \
+        libpython3.11 \
         python3.11 \
     && rm -rf /var/lib/apt/lists/*
 
