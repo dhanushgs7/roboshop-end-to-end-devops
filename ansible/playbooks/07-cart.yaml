@@ -2,6 +2,11 @@
   hosts: cart
   become: yes
   tasks:
+  - name: Require an operator-supplied RoboShop artifact base URL
+    ansible.builtin.assert:
+      that:
+        - roboshop_artifact_base_url | default('') | length > 0
+      fail_msg: "Set roboshop_artifact_base_url to your own trusted artifact repository before running this legacy EC2 playbook."
   - name: enable nodejs 20
     command: dnf module enable nodejs:20 -y
   - name: install nodejs
@@ -29,7 +34,30 @@
       state: directory
   - name: download cart code
     get_url:
-      url: https://roboshop-artifacts.s3.amazonaws.com/cart-v3.zip 
+      url: {{ roboshop_artifact_base_url | regex_replace('/+ 
+      dest: /tmp/cart.zip
+  - name: unzip cart
+    unarchive:
+      src: /tmp/cart.zip
+      dest: /app
+      remote_src: yes
+  - name: install dependencies
+    community.general.npm:
+      path: /app
+  - name: copy cart service
+    template:
+      src: cart.service.j2
+      dest: /etc/systemd/system/cart.service
+  - name: deamon reload
+    systemd_service:
+      name: cart
+      daemon_reload: true
+  - name: enable and restart cart
+    service:
+      name: cart
+      state: restarted
+      enabled: yes
+, '') }}/cart-v3.zip 
       dest: /tmp/cart.zip
   - name: unzip cart
     unarchive:
