@@ -25,6 +25,9 @@ Then, from the repository root:
 
 ```bash
 npm --prefix tests/integration run test:integration
+
+# Optional: run the full registered-user checkout flow in a non-production environment
+RUN_FULL_CHECKOUT=true npm --prefix tests/integration run test:integration
 ```
 
 If services are exposed through another network path, override the endpoint variables:
@@ -39,4 +42,4 @@ If services are exposed through another network path, override the endpoint vari
 
 The smoke suite checks database/cache readiness, catalogue seed data, cart-to-catalogue integration, cart persistence, shipping-to-cart integration, payment validation, and the Cart/Payment Prometheus metrics endpoints.
 
-The suite intentionally does not submit a real payment, create a user, or trigger RabbitMQ order publishing. It creates one uniquely named test cart and attempts to delete it during cleanup. These are deployment smoke tests, not a replacement for full checkout regression, security, load, or failure-recovery testing.
+By default, the suite does not submit a checkout payment, create a user, or trigger RabbitMQ order publishing. It creates one uniquely named test cart and attempts to delete it during cleanup. To additionally run the registered-user end-to-end checkout flow (registration → login → cart → shipping → payment → order history), set `RUN_FULL_CHECKOUT=true` before running the command. That optional flow calls the payment service's configured external demo gateway and publishes an order to RabbitMQ; it creates a uniquely named test user that remains in MongoDB because the current API has no user-delete endpoint. Use a non-production environment. The suite does not charge a real card. These are post-deployment regression checks, not a replacement for security, load, or failure-recovery testing.
