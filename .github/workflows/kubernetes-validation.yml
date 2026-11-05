@@ -16,6 +16,8 @@ on:
       - "monitoring/grafana/**/*.json"
       - ".github/workflows/kubernetes-validation.yml"
 
+  workflow_dispatch:
+
 permissions:
   contents: read
 

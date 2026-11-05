@@ -10,6 +10,8 @@ on:
       - "terraform/**"
       - ".github/workflows/terraform-validation.yml"
 
+  workflow_dispatch:
+
 permissions:
   contents: read
 
