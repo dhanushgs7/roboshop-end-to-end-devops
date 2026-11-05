@@ -68,7 +68,7 @@ jobs:
             scan_image "${IMAGE_TAG}/${service}:v1" "${service}"
           done
 
-          scan_image "prom/prometheus:v3.13.5" "prometheus"
+          scan_image "prom/prometheus:v3.15.1" "prometheus"
           scan_image "grafana/grafana:13.3.0" "grafana"
 
           if [ "${scan_failed}" -ne 0 ]; then
