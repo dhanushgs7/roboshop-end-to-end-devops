@@ -1,4 +1,4 @@
-# mongodb-dev.daws90s.shop
+# Database DNS records use the operator-supplied hosted zone and domain.
 resource "aws_route53_record" "mongodb" {
   zone_id         = var.zone_id
   name            = "mongodb-${var.environment}.${var.domain_name}"
