@@ -7,8 +7,9 @@ class Publisher:
     USER = os.getenv('AMQP_USER', 'guest')
     PASS = os.getenv('AMQP_PASS', 'guest')
     VIRTUAL_HOST = '/'
-    EXCHANGE='robot-shop'
-    TYPE='direct'
+    EXCHANGE = 'robot-shop'
+    TYPE = 'direct'
+    QUEUE = 'orders'
     ROUTING_KEY = 'orders'
 
     def __init__(self, logger):
@@ -25,12 +26,14 @@ class Publisher:
             self._conn = pika.BlockingConnection(self._params)
             self._channel = self._conn.channel()
             self._channel.exchange_declare(exchange=self.EXCHANGE, exchange_type=self.TYPE, durable=True)
+            self._channel.queue_declare(queue=self.QUEUE, durable=True)
+            self._channel.queue_bind(queue=self.QUEUE, exchange=self.EXCHANGE, routing_key=self.ROUTING_KEY)
             self._logger.info('connected to broker')
 
     def _publish(self, msg, headers):
         self._channel.basic_publish(exchange=self.EXCHANGE,
                                     routing_key=self.ROUTING_KEY,
-                                    properties=pika.BasicProperties(headers=headers),
+                                    properties=pika.BasicProperties(headers=headers, delivery_mode=2),
                                     body=json.dumps(msg).encode())
         self._logger.info('message sent')
 
