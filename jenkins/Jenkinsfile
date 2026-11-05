@@ -25,7 +25,7 @@ pipeline {
         EKS_CLUSTER_NAME = 'roboshop-dev'
         K8S_NAMESPACE = 'roboshop'
         IMAGE_PREFIX = 'roboshop'
-        SERVICES = 'catalogue user cart payment shipping frontend mongodb mysql'
+        SERVICES = 'catalogue user cart payment shipping dispatch frontend mongodb mysql'
     }
 
     stages {
@@ -253,10 +253,11 @@ pipeline {
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/cart.yaml"
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/shipping.yaml"
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/payment.yaml"
+                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/dispatch.yaml"
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/frontend.yaml"
                     kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/frontend-ingress.yaml"
 
-                    for service in catalogue user cart shipping payment frontend; do
+                    for service in catalogue user cart shipping payment dispatch frontend; do
                       kubectl -n "$K8S_NAMESPACE" rollout status "deployment/$service" --timeout=5m
                     done
 
