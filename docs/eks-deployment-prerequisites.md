@@ -35,7 +35,7 @@ The current manifests expect these exact secret names and keys:
 | Secret | Required keys | Consumers |
 |---|---|---|
 | `mysql-credentials` | `MYSQL_ROOT_PASSWORD`, `MYSQL_PASSWORD`, `DB_PASSWORD` | MySQL and Shipping |
-| `rabbitmq-credentials` | `RABBITMQ_DEFAULT_USER`, `RABBITMQ_DEFAULT_PASS` | RabbitMQ and Payment |
+| `rabbitmq-credentials` | `RABBITMQ_DEFAULT_USER`, `RABBITMQ_DEFAULT_PASS` | RabbitMQ, Payment and Dispatch |
 | `grafana-admin` (namespace `monitoring`) | `admin-password` | Grafana admin login |
 
 The three MySQL keys must be set to the intended values. `MYSQL_PASSWORD` and `DB_PASSWORD` represent the same application database password in the current manifests. Create the `grafana-admin` secret in the `monitoring` namespace as described in `monitoring/README.md`; the Jenkins deployment stage checks for it before applying the monitoring stack.
@@ -73,12 +73,12 @@ The IAM policy should be scoped to this project's ECR repositories and the minim
 
 The pipeline:
 
-1. Builds and scans all eight application images from this repository's source.
+1. Builds and scans all nine custom images from this repository's source.
 2. When `PUSH_IMAGES=true`, creates missing ECR repositories and pushes immutable build-specific tags.
 3. When `DEPLOY_TO_EKS=true`, connects to the configured cluster and checks the required namespace-scoped Secrets and keys. StorageClass and AWS Load Balancer Controller readiness must be verified by the cluster administrator before deployment.
 4. Renders the Kubernetes manifests to use the exact ECR image tag from the current build.
 5. Applies MongoDB, MySQL, Redis and RabbitMQ first, then waits for all four backing-service Deployments to become Ready.
-6. Applies the application services, frontend and Ingress, then waits for each application Deployment rollout. Payment has HTTP readiness and liveness probes on `/health`.
+6. Applies the application services, Dispatch worker, frontend and Ingress, then waits for each application Deployment rollout. Payment has HTTP readiness and liveness probes on `/health`.
 7. Applies the monitoring stack into the pre-created `monitoring` namespace and waits for Prometheus and Grafana rollouts.
 
 Terraform provisioning remains a separate, manually reviewed operation. A source-code push never runs `terraform apply`.
