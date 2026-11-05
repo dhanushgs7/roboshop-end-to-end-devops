@@ -6,27 +6,6 @@ data "aws_ssm_parameter" "public_subnet_ids" {
   name = "/${var.project}/${var.environment}/public_subnet_ids"
 }
 
-data "aws_ami" "joindevops" {
-  most_recent = true
-  owners      = ["973714476881"]
-
-  filter {
-    name   = "name"
-    values = ["Redhat-9-DevOps-Practice"]
-  }
-
-  filter {
-    name   = "root-device-type"
-    values = ["ebs"]
-  }
-
-  filter {
-    name   = "virtualization-type"
-    values = ["hvm"]
-  }
-
-  filter {
-    name   = "architecture"
-    values = ["x86_64"]
-  }
+data "aws_ssm_parameter" "amazon_linux_2023_ami" {
+  name = "/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-default-x86_64"
 }
