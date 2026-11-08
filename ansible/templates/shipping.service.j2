@@ -3,10 +3,10 @@ Description=Shipping Service
 
 [Service]
 User=roboshop
-// highlight-start
 Environment=CART_ENDPOINT={{ CART_HOST }}:8080
 Environment=DB_HOST={{ MYSQL_HOST }}
-// highlight-end
+Environment=DB_USERNAME=shipping
+Environment=DB_PASSWORD={{ DB_PASSWORD }}
 ExecStart=/bin/java -jar /app/shipping.jar
 SyslogIdentifier=shipping
 

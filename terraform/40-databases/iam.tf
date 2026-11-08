@@ -24,13 +24,30 @@ resource "aws_iam_role" "mysql" {
   )
 }
 
+data "aws_caller_identity" "current" {}
+
+data "aws_region" "current" {}
+
+data "aws_iam_policy_document" "mysql" {
+  statement {
+    sid       = "ReadMySQLRootPassword"
+    effect    = "Allow"
+    actions   = ["ssm:GetParameter"]
+    resources = ["arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter/${var.project}/${var.environment}/mysql_root_password"]
+  }
+
+  statement {
+    sid       = "DescribeParameters"
+    effect    = "Allow"
+    actions   = ["ssm:DescribeParameters"]
+    resources = ["*"]
+  }
+}
+
 resource "aws_iam_policy" "mysql" {
   name        = "${local.common_name}-mysql"
-  description = "Policy to read MySQL SSM paramter to attach to mysql instance"
-
-  # Terraform's "jsonencode" function converts a
-  # Terraform expression result to valid JSON syntax.
-  policy = file("mysql-iam-policy.json")
+  description = "Allow the MySQL instance to read its root password from this AWS account's SSM Parameter Store"
+  policy      = data.aws_iam_policy_document.mysql.json
 }
 
 resource "aws_iam_role_policy_attachment" "mysql" {
