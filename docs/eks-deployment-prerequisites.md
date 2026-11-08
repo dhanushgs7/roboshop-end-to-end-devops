@@ -7,7 +7,7 @@ The Jenkins deployment stage is deliberately opt-in. It assumes the EKS platform
 Before selecting `DEPLOY_TO_EKS`, verify all of the following:
 
 - The EKS cluster named by `EKS_CLUSTER_NAME` exists in `AWS_REGION`.
-- The Jenkins agent's IAM role can call ECR login/push and EKS DescribeCluster. Set `deployment_principal_arn` in `terraform/100-eks` to this IAM role ARN and apply the reviewed Terraform change to create a namespace-scoped EKS access entry for `roboshop` and `monitoring`.
+- The Jenkins agent's IAM role can call ECR login/push and EKS DescribeCluster. Set `deployment_principal_arn` in `terraform/100-eks` to this IAM role ARN and apply the reviewed Terraform change to create a namespace-scoped EKS access entry for `roboshop`.
 - The cluster has at least one Ready worker node with enough CPU and memory for the application.
 - The Amazon EBS CSI driver is installed and healthy.
 - The `gp3-csi` StorageClass exists and provisions EBS volumes in the worker-node Availability Zones.
@@ -23,7 +23,6 @@ Create both namespaces once with a cluster-administrator identity:
 
 ```bash
 kubectl apply -f kubernetes/namespace.yaml
-kubectl apply -f monitoring/kubernetes/namespace.yaml
 ```
 
 Before handing access to Jenkins, an administrator must also verify the AWS Load Balancer Controller is healthy in `kube-system` and that the `gp3-csi` StorageClass exists. The Jenkins role is intentionally namespace-scoped and does not read or mutate cluster-scoped resources. The administrator must verify the StorageClass and AWS Load Balancer Controller before handing deployment access to Jenkins.
@@ -36,7 +35,6 @@ The current manifests expect these exact secret names and keys:
 |---|---|---|
 | `mysql-credentials` | `MYSQL_ROOT_PASSWORD`, `MYSQL_PASSWORD`, `DB_PASSWORD` | MySQL and Shipping |
 | `rabbitmq-credentials` | `RABBITMQ_DEFAULT_USER`, `RABBITMQ_DEFAULT_PASS` | RabbitMQ, Payment and Dispatch |
-| `grafana-admin` (namespace `monitoring`) | `admin-password` | Grafana admin login |
 
 The three MySQL keys must be set to the intended values. `MYSQL_PASSWORD` and `DB_PASSWORD` represent the same application database password in the current manifests. Create the `grafana-admin` secret in the `monitoring` namespace as described in `monitoring/README.md`; the Jenkins deployment stage checks for it before applying the monitoring stack.
 
@@ -67,19 +65,18 @@ The Jenkins agent needs:
 
 Use an attached IAM role or workload identity where available. Do not store long-lived AWS access keys in the repository.
 
-The IAM policy should be scoped to this project's ECR repositories and the minimum EKS discovery/push operations. The Terraform EKS component can create an access entry for `deployment_principal_arn` and associate `AmazonEKSAdminPolicy` only with the `roboshop` and `monitoring` namespaces. This avoids granting Jenkins cluster-admin access. The Jenkins pipeline does not create namespaces, inspect `kube-system`, or read cluster-scoped StorageClass resources.
+The IAM policy should be scoped to this project's ECR repositories and the minimum EKS discovery/push operations. The Terraform EKS component can create an access entry for `deployment_principal_arn` and associate `AmazonEKSAdminPolicy` only with the `roboshop` namespace. This avoids granting Jenkins cluster-admin access. The Jenkins pipeline does not create namespaces, inspect `kube-system`, or read cluster-scoped StorageClass resources.
 
 ## 4. Deployment order
 
 The pipeline:
 
-1. Builds and scans all nine custom images from this repository's source.
+1. Builds and scans the nine application and database images from this repository's source.
 2. When `PUSH_IMAGES=true`, creates missing ECR repositories and pushes immutable build-specific tags.
 3. When `DEPLOY_TO_EKS=true`, connects to the configured cluster and checks the required namespace-scoped Secrets and keys. StorageClass and AWS Load Balancer Controller readiness must be verified by the cluster administrator before deployment.
 4. Renders the Kubernetes manifests to use the exact ECR image tag from the current build.
 5. Applies MongoDB, MySQL, Redis and RabbitMQ first, then waits for all four backing-service Deployments to become Ready.
 6. Applies the application services, Dispatch worker, frontend and Ingress, then waits for each application Deployment rollout. Payment has HTTP readiness and liveness probes on `/health`.
-7. Applies the monitoring stack into the pre-created `monitoring` namespace and waits for Prometheus and Grafana rollouts.
 
 Terraform provisioning remains a separate, manually reviewed operation. A source-code push never runs `terraform apply`.
 
