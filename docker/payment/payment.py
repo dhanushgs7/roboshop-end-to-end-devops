@@ -36,7 +36,7 @@ def health():
 
 @app.route('/metrics', methods=['GET'])
 def metrics():
-    payload = "\\n".join([
+    payload = "\n".join([
         "# HELP roboshop_payment_orders_published_total Orders successfully published to RabbitMQ.",
         "# TYPE roboshop_payment_orders_published_total counter",
         f"roboshop_payment_orders_published_total {sold_count}",
