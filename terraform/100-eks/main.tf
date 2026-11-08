@@ -301,6 +301,6 @@ resource "aws_eks_access_policy_association" "jenkins_deployer" {
 
   access_scope {
     type       = "namespace"
-    namespaces = ["roboshop", "monitoring"]
+    namespaces = ["roboshop"]
   }
 }
