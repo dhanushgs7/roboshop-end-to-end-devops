@@ -17,6 +17,7 @@ const { mergeList, calcTotal, calcTax } = require('./cart-utils');
 
 
 var redisConnected = false;
+var itemsAdded = 0;
 
 var redisHost = process.env.REDIS_HOST || 'redis'
 var catalogueHost = process.env.CATALOGUE_HOST || 'catalogue'
@@ -64,6 +65,16 @@ app.get('/health', (req, res) => {
         redis: redisConnected
     };
     res.json(stat);
+});
+
+// Internal Prometheus scrape endpoint. The public Nginx proxy intentionally does not expose it.
+app.get('/metrics', (req, res) => {
+    res.type('text/plain; version=0.0.4; charset=utf-8').send([
+        '# HELP roboshop_cart_items_added_total Number of product units successfully added to carts.',
+        '# TYPE roboshop_cart_items_added_total counter',
+        'roboshop_cart_items_added_total ' + itemsAdded,
+        ''
+    ].join('\\n'));
 });
 
 // get cart with id
@@ -181,6 +192,7 @@ app.get('/add/:id/:sku/:qty', (req, res) => {
 
                 // save the new cart
                 saveCart(req.params.id, cart).then((data) => {
+                    itemsAdded += qty;
                     res.json(cart);
                 }).catch((err) => {
                     req.log.error(err);

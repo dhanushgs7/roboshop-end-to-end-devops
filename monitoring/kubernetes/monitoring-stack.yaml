@@ -1,0 +1,530 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-config
+  namespace: monitoring
+data:
+  prometheus.yml: |
+    global:
+      scrape_interval: 15s
+      evaluation_interval: 15s
+    alerting:
+      alertmanagers:
+        - static_configs:
+            - targets: ["alertmanager.monitoring.svc.cluster.local:9093"]
+    rule_files:
+      - /etc/prometheus/rules/*.yml
+    scrape_configs:
+      - job_name: prometheus
+        static_configs:
+          - targets: ["localhost:9090"]
+      - job_name: roboshop-cart
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["cart.roboshop.svc.cluster.local:8080"]
+      - job_name: roboshop-payment
+        metrics_path: /metrics
+        static_configs:
+          - targets: ["payment.roboshop.svc.cluster.local:8080"]
+      - job_name: node-exporter
+        static_configs:
+          - targets: ["node-exporter.monitoring.svc.cluster.local:9100"]
+  alert-rules.yml: |
+    groups:
+      - name: roboshop-platform
+        rules:
+          - alert: PrometheusTargetDown
+            expr: up == 0
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Prometheus target is unavailable"
+              description: "Target {{ $labels.instance }} for job {{ $labels.job }} has been down for more than two minutes."
+          - alert: NodeHighCPUUsage
+            expr: 100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m]))) > 85
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Node CPU usage is high"
+              description: "Node {{ $labels.instance }} has sustained CPU usage above 85 percent."
+          - alert: NodeLowAvailableMemory
+            expr: 100 * node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 10
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Node available memory is low"
+              description: "Node {{ $labels.instance }} has less than 10 percent memory available."
+          - alert: RoboShopApplicationTargetDown
+            expr: up{job=~"roboshop-(cart|payment)"} == 0
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "RoboShop application metrics target is down"
+              description: "{{ $labels.job }} at {{ $labels.instance }} is not being scraped."
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: alertmanager-config
+  namespace: monitoring
+data:
+  alertmanager.yml: |
+    global:
+      resolve_timeout: 5m
+    route:
+      receiver: discard-unconfigured
+      group_by: ["alertname", "job"]
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 4h
+    receivers:
+      - name: discard-unconfigured
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: grafana-provisioning
+  namespace: monitoring
+data:
+  datasource.yml: |
+    apiVersion: 1
+    datasources:
+      - name: Prometheus
+        uid: prometheus
+        type: prometheus
+        access: proxy
+        url: http://prometheus.monitoring.svc.cluster.local:9090
+        isDefault: true
+        editable: false
+  dashboard-provider.yml: |
+    apiVersion: 1
+    providers:
+      - name: RoboShop
+        orgId: 1
+        folder: RoboShop
+        type: file
+        disableDeletion: true
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: roboshop-dashboard
+  namespace: monitoring
+data:
+  roboshop-overview.json: |
+    {
+      "id": null,
+      "uid": "roboshop-overview",
+      "title": "RoboShop Platform Overview",
+      "tags": ["roboshop", "platform"],
+      "timezone": "browser",
+      "schemaVersion": 39,
+      "version": 1,
+      "refresh": "30s",
+      "time": {"from": "now-1h", "to": "now"},
+      "panels": [
+        {
+          "id": 1,
+          "type": "stat",
+          "title": "Cart product units added",
+          "gridPos": {"h": 6, "w": 6, "x": 0, "y": 0},
+          "targets": [{"expr": "roboshop_cart_items_added_total", "refId": "A"}]
+        },
+        {
+          "id": 2,
+          "type": "stat",
+          "title": "Orders published",
+          "gridPos": {"h": 6, "w": 6, "x": 6, "y": 0},
+          "targets": [{"expr": "roboshop_payment_orders_published_total", "refId": "A"}]
+        },
+        {
+          "id": 3,
+          "type": "timeseries",
+          "title": "Node CPU usage (%)",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+          "targets": [{"expr": "100 * (1 - avg by (instance) (rate(node_cpu_seconds_total{mode=\"idle\"}[5m])))", "legendFormat": "{{instance}}", "refId": "A"}]
+        },
+        {
+          "id": 4,
+          "type": "timeseries",
+          "title": "Node memory available (%)",
+          "gridPos": {"h": 8, "w": 12, "x": 0, "y": 6},
+          "targets": [{"expr": "100 * node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes", "legendFormat": "{{instance}}", "refId": "A"}]
+        },
+        {
+          "id": 5,
+          "type": "timeseries",
+          "title": "Scrape target health",
+          "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+          "targets": [{"expr": "up", "legendFormat": "{{job}} / {{instance}}", "refId": "A"}]
+        }
+      ]
+    }
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: prometheus-data
+  namespace: monitoring
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: gp3-csi
+  resources:
+    requests:
+      storage: 5Gi
+
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: grafana-data
+  namespace: monitoring
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: gp3-csi
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: prometheus
+  template:
+    metadata:
+      labels:
+        app: prometheus
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        runAsGroup: 65534
+        fsGroup: 65534
+      containers:
+        - name: prometheus
+          image: prom/prometheus:v2.55.1
+          args:
+            - --config.file=/etc/prometheus/prometheus.yml
+            - --storage.tsdb.path=/prometheus
+            - --storage.tsdb.retention.time=7d
+            - --web.enable-lifecycle
+          ports:
+            - name: http
+              containerPort: 9090
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 1Gi
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          volumeMounts:
+            - name: config
+              mountPath: /etc/prometheus
+              readOnly: true
+            - name: data
+              mountPath: /prometheus
+            - name: rules
+              mountPath: /etc/prometheus/rules
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: prometheus-config
+            items:
+              - key: prometheus.yml
+                path: prometheus.yml
+        - name: rules
+          configMap:
+            name: prometheus-config
+            items:
+              - key: alert-rules.yml
+                path: alert-rules.yml
+        - name: data
+          persistentVolumeClaim:
+            claimName: prometheus-data
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: prometheus
+  namespace: monitoring
+spec:
+  type: ClusterIP
+  selector:
+    app: prometheus
+  ports:
+    - name: http
+      port: 9090
+      targetPort: http
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grafana
+  template:
+    metadata:
+      labels:
+        app: grafana
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 472
+        runAsGroup: 472
+        fsGroup: 472
+      containers:
+        - name: grafana
+          image: grafana/grafana:11.4.0
+          ports:
+            - name: http
+              containerPort: 3000
+          env:
+            - name: GF_SECURITY_ADMIN_USER
+              value: admin
+            - name: GF_SECURITY_ADMIN_PASSWORD__FILE
+              value: /etc/grafana-secrets/admin-password
+            - name: GF_USERS_ALLOW_SIGN_UP
+              value: "false"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/grafana
+            - name: secret
+              mountPath: /etc/grafana-secrets
+              readOnly: true
+            - name: datasource
+              mountPath: /etc/grafana/provisioning/datasources/datasource.yml
+              subPath: datasource.yml
+              readOnly: true
+            - name: dashboard-provider
+              mountPath: /etc/grafana/provisioning/dashboards/provider.yml
+              subPath: dashboard-provider.yml
+              readOnly: true
+            - name: dashboard
+              mountPath: /var/lib/grafana/dashboards/roboshop-overview.json
+              subPath: roboshop-overview.json
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: grafana-data
+        - name: secret
+          secret:
+            secretName: grafana-admin
+        - name: datasource
+          configMap:
+            name: grafana-provisioning
+            items:
+              - key: datasource.yml
+                path: datasource.yml
+        - name: dashboard-provider
+          configMap:
+            name: grafana-provisioning
+            items:
+              - key: dashboard-provider.yml
+                path: dashboard-provider.yml
+        - name: dashboard
+          configMap:
+            name: roboshop-dashboard
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: grafana
+  namespace: monitoring
+spec:
+  type: ClusterIP
+  selector:
+    app: grafana
+  ports:
+    - name: http
+      port: 3000
+      targetPort: http
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: alertmanager
+  namespace: monitoring
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: alertmanager
+  template:
+    metadata:
+      labels:
+        app: alertmanager
+    spec:
+      containers:
+        - name: alertmanager
+          image: prom/alertmanager:v0.28.1
+          args:
+            - --config.file=/etc/alertmanager/alertmanager.yml
+            - --storage.path=/alertmanager
+          ports:
+            - name: http
+              containerPort: 9093
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          readinessProbe:
+            httpGet:
+              path: /-/ready
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /-/healthy
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+          volumeMounts:
+            - name: config
+              mountPath: /etc/alertmanager
+              readOnly: true
+      volumes:
+        - name: config
+          configMap:
+            name: alertmanager-config
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: alertmanager
+  namespace: monitoring
+spec:
+  type: ClusterIP
+  selector:
+    app: alertmanager
+  ports:
+    - name: http
+      port: 9093
+      targetPort: http
+
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: node-exporter
+  namespace: monitoring
+spec:
+  selector:
+    matchLabels:
+      app: node-exporter
+  template:
+    metadata:
+      labels:
+        app: node-exporter
+    spec:
+      hostPID: true
+      containers:
+        - name: node-exporter
+          image: quay.io/prometheus/node-exporter:v1.8.2
+          args:
+            - --path.rootfs=/host
+            - --web.listen-address=:9100
+          ports:
+            - name: metrics
+              containerPort: 9100
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 250m
+              memory: 128Mi
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+          volumeMounts:
+            - name: root
+              mountPath: /host
+              readOnly: true
+              mountPropagation: HostToContainer
+      volumes:
+        - name: root
+          hostPath:
+            path: /
+            type: Directory
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-exporter
+  namespace: monitoring
+spec:
+  type: ClusterIP
+  selector:
+    app: node-exporter
+  ports:
+    - name: metrics
+      port: 9100
+      targetPort: metrics

@@ -6,6 +6,8 @@ from payment import app, countItems
 
 class PaymentServiceTests(unittest.TestCase):
     def setUp(self):
+        import payment
+        payment.sold_count = 0
         self.client = app.test_client()
         self.cart = {
             "total": 120,
@@ -24,6 +26,11 @@ class PaymentServiceTests(unittest.TestCase):
     def test_count_items_excludes_shipping(self):
         self.assertEqual(countItems(self.cart["items"]), 2)
 
+    def test_metrics_exposes_order_counter(self):
+        response = self.client.get("/metrics")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("roboshop_payment_orders_published_total 0", response.get_data(as_text=True))
+
     @patch("payment.publisher")
     @patch("payment.requests.delete")
     @patch("payment.requests.get")
@@ -36,6 +43,7 @@ class PaymentServiceTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("orderid", response.get_json())
         mock_publisher.publish.assert_called_once()
+        self.assertIn("roboshop_payment_orders_published_total 1", self.client.get("/metrics").get_data(as_text=True))
         mock_delete.assert_called_once()
 
     @patch("payment.publisher")

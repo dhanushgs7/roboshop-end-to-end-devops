@@ -91,6 +91,18 @@ async function main() {
       });
     });
 
+    await check('Cart Prometheus metrics endpoint', async () => {
+      const r = await request(`${urls.cart}/metrics`);
+      assert.equal(r.status, 200, r.raw);
+      assert.match(r.raw, /roboshop_cart_items_added_total/);
+    });
+
+    await check('Payment Prometheus metrics endpoint', async () => {
+      const r = await request(`${urls.payment}/metrics`);
+      assert.equal(r.status, 200, r.raw);
+      assert.match(r.raw, /roboshop_payment_orders_published_total/);
+    });
+
     await check('Payment health endpoint', async () => {
       await waitFor('Payment health', async () => {
         const r = await request(`${urls.payment}/health`);

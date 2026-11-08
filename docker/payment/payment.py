@@ -23,6 +23,7 @@ CART_PORT = os.getenv('CART_PORT', 8080)
 USER = os.getenv('USER_HOST', 'user')
 USER_PORT = os.getenv('USER_PORT', 8080)
 PAYMENT_GATEWAY = os.getenv('PAYMENT_GATEWAY', 'https://google.com/')
+sold_count = 0
 
 @app.errorhandler(Exception)
 def exception_handler(err):
@@ -32,6 +33,16 @@ def exception_handler(err):
 @app.route('/health', methods=['GET'])
 def health():
     return 'OK'
+
+@app.route('/metrics', methods=['GET'])
+def metrics():
+    payload = "\\n".join([
+        "# HELP roboshop_payment_orders_published_total Orders successfully published to RabbitMQ.",
+        "# TYPE roboshop_payment_orders_published_total counter",
+        f"roboshop_payment_orders_published_total {sold_count}",
+        "",
+    ])
+    return Response(payload, mimetype='text/plain; version=0.0.4; charset=utf-8')
 
 @app.route('/pay/<id>', methods=['POST'])
 def pay(id):
@@ -108,6 +119,8 @@ def queueOrder(order):
 
     headers = {}
     publisher.publish(order, headers)
+    global sold_count
+    sold_count += 1
 
 
 def countItems(items):
