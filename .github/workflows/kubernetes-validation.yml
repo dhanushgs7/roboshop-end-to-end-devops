@@ -8,9 +8,6 @@ on:
   pull_request:
     paths:
       - "kubernetes/**/*.yaml"
-      - "monitoring/kubernetes/**/*.yaml"
-      - "monitoring/prometheus/*.yml"
-      - "monitoring/grafana/**/*.json"
       - ".github/workflows/kubernetes-validation.yml"
 
   workflow_dispatch:
