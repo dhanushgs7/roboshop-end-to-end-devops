@@ -14,17 +14,17 @@ pipeline {
             description: 'Push successfully built images to this AWS account ECR repositories'
         )
         booleanParam(
-            name: 'DEPLOY_TO_EKS',
+            name: 'UPDATE_GITOPS',
             defaultValue: false,
-            description: 'Deploy the pushed images to the configured EKS cluster'
+            description: 'Publish the pushed image tags to the GitOps branch for Argo CD reconciliation'
         )
     }
 
     environment {
         AWS_REGION = 'us-east-1'
-        EKS_CLUSTER_NAME = 'roboshop-dev'
-        K8S_NAMESPACE = 'roboshop'
         IMAGE_PREFIX = 'roboshop'
+        GITOPS_BRANCH = 'gitops'
+        GITOPS_REPOSITORY_URL = 'https://github.com/dhanushgs7/roboshop-end-to-end-devops.git'
         SERVICES = 'catalogue user cart payment shipping dispatch frontend mongodb mysql'
     }
 
@@ -193,78 +193,71 @@ pipeline {
             }
         }
 
-        stage('Deploy to EKS') {
+        stage('Update GitOps manifests') {
             when {
-                expression { params.DEPLOY_TO_EKS }
+                expression { params.UPDATE_GITOPS }
             }
             steps {
-                sh '''
-                    set -eu
-                    if [ "$PUSH_IMAGES" != "true" ]; then
-                      echo "DEPLOY_TO_EKS requires PUSH_IMAGES=true in the same build."
-                      exit 1
-                    fi
-                    command -v kubectl >/dev/null 2>&1
-                    AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
-                    ECR_REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
-                    aws eks update-kubeconfig --region "$AWS_REGION" --name "$EKS_CLUSTER_NAME"
-                    # Render source-controlled image references to this build's ECR tag before applying.
-                    # This avoids briefly starting trainer-owned joindevops images.
-                    RENDERED_MANIFESTS="$(mktemp -d)"
-                    trap 'rm -rf "$RENDERED_MANIFESTS"' EXIT
-                    cp -R kubernetes/. "$RENDERED_MANIFESTS/"
-                    find "$RENDERED_MANIFESTS" -type f -name '*.yaml' \
-                      -exec sed -i -E "s#image: joindevops/([^:]+):v1#image: $ECR_REGISTRY/$IMAGE_PREFIX/\\1:$IMAGE_TAG#g" {} +
-
-                    if grep -R -nE 'image: *joindevops/' "$RENDERED_MANIFESTS"; then
-                      echo "A trainer image reference remains in the rendered manifests; refusing deployment."
-                      exit 1
-                    fi
-
-                    # Namespaces are created once by a cluster administrator; Jenkins receives
-                    # namespace-scoped EKS access only and cannot query cluster-scoped Namespace objects.
-                    # Secret lookups below also fail safely if a namespace or secret is missing.
-                    kubectl -n "$K8S_NAMESPACE" get secret mysql-credentials >/dev/null || {
-                      echo "Missing namespace $K8S_NAMESPACE or secret mysql-credentials. Ask a cluster administrator to create them."
-                      exit 1
+                script {
+                    if (!params.PUSH_IMAGES) {
+                        error('UPDATE_GITOPS requires PUSH_IMAGES=true in the same build.')
                     }
-                    kubectl -n "$K8S_NAMESPACE" get secret rabbitmq-credentials >/dev/null || {
-                      echo "Missing namespace $K8S_NAMESPACE or secret rabbitmq-credentials. Ask a cluster administrator to create them."
-                      exit 1
-                    }
+                }
+                withCredentials([string(credentialsId: 'github-gitops-token', variable: 'GITHUB_TOKEN')]) {
+                    sh '''
+                        set -eu
+                        AWS_ACCOUNT_ID="$(aws sts get-caller-identity --query Account --output text)"
+                        ECR_REGISTRY="$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
 
-                    for key in MYSQL_ROOT_PASSWORD MYSQL_PASSWORD DB_PASSWORD; do
-                      value="$(kubectl -n "$K8S_NAMESPACE" get secret mysql-credentials -o "jsonpath={.data.$key}")"
-                      test -n "$value" || { echo "mysql-credentials is missing key $key"; exit 1; }
-                    done
-                    for key in RABBITMQ_DEFAULT_USER RABBITMQ_DEFAULT_PASS; do
-                      value="$(kubectl -n "$K8S_NAMESPACE" get secret rabbitmq-credentials -o "jsonpath={.data.$key}")"
-                      test -n "$value" || { echo "rabbitmq-credentials is missing key $key"; exit 1; }
-                    done
+                        ASKPASS="$WORKSPACE/.git-askpass"
+                        cat > "$ASKPASS" <<'ASKPASS_EOF'
+#!/bin/sh
+case "$1" in
+  *Username*) printf '%s\n' "x-access-token" ;;
+  *Password*) printf '%s\n' "$GITHUB_TOKEN" ;;
+esac
+ASKPASS_EOF
+                        chmod 700 "$ASKPASS"
+                        export GIT_ASKPASS="$ASKPASS"
+                        export GIT_TERMINAL_PROMPT=0
 
-                    # Start backing services first and wait for them before deploying dependants.
-                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/database/"
-                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/redis.yaml"
-                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/rabbitmq.yaml"
+                        REMOTE_REF="$(git ls-remote --heads "$GITOPS_REPOSITORY_URL" "refs/heads/$GITOPS_BRANCH")"
+                        if [ -n "$REMOTE_REF" ]; then
+                          git fetch "$GITOPS_REPOSITORY_URL" "refs/heads/$GITOPS_BRANCH"
+                          git checkout -B "$GITOPS_BRANCH" FETCH_HEAD
+                        else
+                          # First publication starts from the exact application commit built by this pipeline.
+                          git checkout -B "$GITOPS_BRANCH" "$GIT_COMMIT"
+                        fi
 
-                    for service in mongodb mysql redis rabbitmq; do
-                      kubectl -n "$K8S_NAMESPACE" rollout status "deployment/$service" --timeout=5m
-                    done
+                        for service in catalogue user cart payment shipping dispatch frontend mongodb mysql; do
+                          manifest="kubernetes/$service.yaml"
+                          if [ "$service" = "mongodb" ] || [ "$service" = "mysql" ]; then
+                            manifest="kubernetes/database/$service.yaml"
+                          fi
+                          test -f "$manifest" || {
+                            echo "Missing expected deployment manifest: $manifest"
+                            exit 1
+                          }
+                          sed -i "s#image: joindevops/$service:v1#image: $ECR_REGISTRY/$IMAGE_PREFIX/$service:$IMAGE_TAG#g" "$manifest"
+                          grep -Fq "image: $ECR_REGISTRY/$IMAGE_PREFIX/$service:$IMAGE_TAG" "$manifest" || {
+                            echo "Image reference update failed for $service in $manifest"
+                            exit 1
+                          }
+                        done
 
-                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/catalogue.yaml"
-                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/user.yaml"
-                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/cart.yaml"
-                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/shipping.yaml"
-                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/dispatch.yaml"
-                    kubectl -n "$K8S_NAMESPACE" rollout status deployment/dispatch --timeout=5m
-                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/payment.yaml"
-                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/frontend.yaml"
-                    kubectl apply -n "$K8S_NAMESPACE" -f "$RENDERED_MANIFESTS/frontend-ingress.yaml"
+                        if git diff --quiet -- kubernetes; then
+                          echo "GitOps manifests already reference this image tag; no commit is required."
+                          exit 0
+                        fi
 
-                    for service in catalogue user cart shipping payment frontend; do
-                      kubectl -n "$K8S_NAMESPACE" rollout status "deployment/$service" --timeout=5m
-                    done
-                '''
+                        git config user.name "roboshop-jenkins"
+                        git config user.email "roboshop-jenkins@users.noreply.github.com"
+                        git add kubernetes
+                        git commit -m "chore(gitops): deploy RoboShop \${IMAGE_TAG}"
+                        git push "$GITOPS_REPOSITORY_URL" "HEAD:refs/heads/$GITOPS_BRANCH"
+                    '''
+                }
             }
         }
     }
