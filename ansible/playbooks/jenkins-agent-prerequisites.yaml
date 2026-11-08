@@ -4,7 +4,6 @@
   become: true
   gather_facts: true
   vars:
-    kubectl_version: "v1.34.0"
 
   tasks:
     - name: Ensure supported Ubuntu distribution
@@ -54,13 +53,6 @@
       ansible.builtin.command: /tmp/aws/install --update
       args:
         creates: /usr/local/bin/aws
-      when: ansible_architecture == "x86_64"
-
-    - name: Install kubectl matching the default EKS Kubernetes minor version
-      ansible.builtin.get_url:
-        url: "https://dl.k8s.io/release/{{ kubectl_version }}/bin/linux/amd64/kubectl"
-        dest: /usr/local/bin/kubectl
-        mode: "0755"
       when: ansible_architecture == "x86_64"
 
     - name: Download Trivy repository signing key
