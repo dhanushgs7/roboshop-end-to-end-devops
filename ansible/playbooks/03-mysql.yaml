@@ -3,6 +3,11 @@
   hosts: mysql
   become: yes
   tasks:
+    - name: Require the MySQL root password from the operator environment
+      ansible.builtin.assert:
+        that:
+          - MYSQL_ROOT_PASSWORD | default('') | length > 0
+        fail_msg: "Export MYSQL_ROOT_PASSWORD before running the MySQL playbook."
     - name: install mysql server
       package:
         name: mysql-server

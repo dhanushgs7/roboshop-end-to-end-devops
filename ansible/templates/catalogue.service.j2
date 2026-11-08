@@ -1,12 +1,10 @@
 [Unit]
-Description = Catalogue Service
+Description=Catalogue Service
 
 [Service]
 User=roboshop
 Environment=MONGO=true
-// highlight-start
-Environment=MONGO_URL="mongodb://{{ MONGODB_HOST }}:27017/catalogue"
-// highlight-end
+Environment="MONGO_URL=mongodb://{{ MONGODB_HOST }}:27017/catalogue"
 ExecStart=/bin/node /app/server.js
 SyslogIdentifier=catalogue
 
