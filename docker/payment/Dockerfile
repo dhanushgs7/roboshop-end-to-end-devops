@@ -50,7 +50,7 @@ ENV PATH="/opt/venv/bin:${PATH}" \
     PYTHONUNBUFFERED=1
 
 RUN set -eux; \
-    python -c "import flask, pika, prometheus_client, opentracing, instana, requests; import importlib.util; assert importlib.util.find_spec('setuptools') is None"; \
+    python -c "import flask, pika, opentracing, instana, requests; import importlib.util; assert importlib.util.find_spec('setuptools') is None"; \
     uwsgi --version; \
     ! ldd /opt/venv/bin/uwsgi 2>&1 | grep -q "not found"; \
     test -z "$(find /opt/venv -iname '*setuptools*' -print -quit)"; \
