@@ -14,15 +14,7 @@ const express = require('express');
 const pino = require('pino');
 const expPino = require('express-pino-logger');
 // Prometheus
-const promClient = require('prom-client');
 const { mergeList, calcTotal, calcTax } = require('./cart-utils');
-const Registry = promClient.Registry;
-const register = new Registry();
-const counter = new promClient.Counter({
-    name: 'items_added',
-    help: 'running count of items added to cart',
-    registers: [register]
-});
 
 
 var redisConnected = false;
@@ -74,13 +66,6 @@ app.get('/health', (req, res) => {
     };
     res.json(stat);
 });
-
-// Prometheus
-app.get('/metrics', (req, res) => {
-    res.header('Content-Type', 'text/plain');
-    res.send(register.metrics());
-});
-
 
 // get cart with id
 app.get('/cart/:id', (req, res) => {
@@ -197,7 +182,6 @@ app.get('/add/:id/:sku/:qty', (req, res) => {
 
                 // save the new cart
                 saveCart(req.params.id, cart).then((data) => {
-                    counter.inc(qty);
                     res.json(cart);
                 }).catch((err) => {
                     req.log.error(err);
