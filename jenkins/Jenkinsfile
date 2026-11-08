@@ -75,7 +75,7 @@ pipeline {
                     docker run --rm \
                       -v "$WORKSPACE/docker/dispatch:/app" \
                       -w /app \
-                      golang:1.26.10-alpine \
+                      golang:1.26.10-bookworm \
                       sh -c "go mod download && go test -race -cover ./..."
                 '''
             }
