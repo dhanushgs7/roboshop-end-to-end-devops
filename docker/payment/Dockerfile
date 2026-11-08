@@ -18,7 +18,7 @@ RUN python3.11 -m venv /opt/venv \
     && /opt/venv/bin/python -m pip install --no-cache-dir --upgrade pip \
     && /opt/venv/bin/python -m pip install --no-cache-dir -r requirements.txt \
     && /opt/venv/bin/python -m pip check \
-    && /opt/venv/bin/python -c "import flask, pika, prometheus_client, opentracing, instana, requests" \
+    && /opt/venv/bin/python -c "import flask, pika, opentracing, instana, requests" \
     && /opt/venv/bin/python -m pip uninstall -y setuptools \
     && rm -rf /opt/venv/lib/python3.11/site-packages/pip \
               /opt/venv/lib/python3.11/site-packages/pip-*.dist-info \
