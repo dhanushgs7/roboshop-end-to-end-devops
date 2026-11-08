@@ -19,7 +19,7 @@ The Ingress manifest uses an internet-facing ALB with IP targets. The controller
 
 ## 2. Required Kubernetes secrets
 
-Create both namespaces once with a cluster-administrator identity:
+Create the application namespace once with a cluster-administrator identity:
 
 ```bash
 kubectl apply -f kubernetes/namespace.yaml
@@ -36,7 +36,7 @@ The current manifests expect these exact secret names and keys:
 | `mysql-credentials` | `MYSQL_ROOT_PASSWORD`, `MYSQL_PASSWORD`, `DB_PASSWORD` | MySQL and Shipping |
 | `rabbitmq-credentials` | `RABBITMQ_DEFAULT_USER`, `RABBITMQ_DEFAULT_PASS` | RabbitMQ, Payment and Dispatch |
 
-The three MySQL keys must be set to the intended values. `MYSQL_PASSWORD` and `DB_PASSWORD` represent the same application database password in the current manifests. Create the `grafana-admin` secret in the `monitoring` namespace as described in `monitoring/README.md`; the Jenkins deployment stage checks for it before applying the monitoring stack.
+The three MySQL keys must be set to the intended values. `MYSQL_PASSWORD` and `DB_PASSWORD` represent the same application database password in the current manifests.
 
 Example command shape (replace environment variable values securely before running):
 
