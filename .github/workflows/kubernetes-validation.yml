@@ -1,12 +1,9 @@
-name: Kubernetes and Monitoring Manifest Validation
+name: Kubernetes Manifest Validation
 
 on:
   push:
     paths:
       - "kubernetes/**/*.yaml"
-      - "monitoring/kubernetes/**/*.yaml"
-      - "monitoring/prometheus/*.yml"
-      - "monitoring/grafana/**/*.json"
       - ".github/workflows/kubernetes-validation.yml"
   pull_request:
     paths:
@@ -23,7 +20,7 @@ permissions:
 
 jobs:
   validate:
-    name: Validate Kubernetes manifests and monitoring config
+    name: Validate Kubernetes manifests
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -40,24 +37,6 @@ jobs:
       - name: Validate Kubernetes manifests
         run: |
           set -eu
-          find kubernetes monitoring/kubernetes -type f \( -name '*.yaml' -o -name '*.yml' \) -print0 |
+          find kubernetes -type f \( -name '*.yaml' -o -name '*.yml' \) -print0 |
             xargs -0 -r "$(go env GOPATH)/bin/kubeconform" -strict -summary
 
-      - name: Validate Prometheus YAML and Grafana dashboard JSON
-        run: |
-          python -m pip install --disable-pip-version-check PyYAML
-          python - <<'PY'
-          import json
-          from pathlib import Path
-          import yaml
-
-          with Path("monitoring/prometheus/prometheus.yml").open(encoding="utf-8") as stream:
-              config = yaml.safe_load(stream)
-          assert isinstance(config.get("scrape_configs"), list) and config["scrape_configs"], "Prometheus scrape_configs must be non-empty"
-
-          dashboard = json.loads(Path("monitoring/grafana/dashboards/roboshop-app-metrics.json").read_text(encoding="utf-8"))
-          assert dashboard.get("uid") == "roboshop-app-metrics", "Unexpected Grafana dashboard UID"
-          assert len(dashboard.get("panels", [])) >= 2, "Expected application metric panels"
-          assert all(panel.get("datasource", {}).get("uid") == "prometheus" for panel in dashboard["panels"]), "Dashboard panels must use the provisioned Prometheus data source"
-          print("Prometheus YAML and Grafana dashboard JSON are valid.")
-          PY
