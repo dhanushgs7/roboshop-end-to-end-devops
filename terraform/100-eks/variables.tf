@@ -82,7 +82,7 @@ variable "max_nodes" {
 }
 
 variable "deployment_principal_arn" {
-  description = "Optional IAM role or user ARN used by Jenkins to deploy into the roboshop and monitoring namespaces"
+  description = "Optional IAM role or user ARN used by Jenkins to deploy into the roboshop namespace"
   type        = string
   default     = null
 
