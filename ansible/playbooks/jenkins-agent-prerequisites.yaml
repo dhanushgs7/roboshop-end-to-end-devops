@@ -4,7 +4,6 @@
   become: true
   gather_facts: true
   vars:
-    kubectl_version: "v1.34.0"
 
   tasks:
     - name: Ensure supported Ubuntu distribution
@@ -56,13 +55,6 @@
         creates: /usr/local/bin/aws
       when: ansible_architecture == "x86_64"
 
-    - name: Install kubectl matching the default EKS Kubernetes minor version
-      ansible.builtin.get_url:
-        url: "https://dl.k8s.io/release/{{ kubectl_version }}/bin/linux/amd64/kubectl"
-        dest: /usr/local/bin/kubectl
-        mode: "0755"
-      when: ansible_architecture == "x86_64"
-
     - name: Download Trivy repository signing key
       ansible.builtin.get_url:
         url: https://aquasecurity.github.io/trivy-repo/deb/public.key
@@ -100,7 +92,7 @@
     - name: Report remaining agent bootstrap requirements
       ansible.builtin.debug:
         msg:
-          - "Install AWS CLI v2, kubectl, and Trivy using their official vendor instructions."
+          - "Install AWS CLI v2 and Trivy using their official vendor instructions."
           - "Register this machine with the Jenkins controller using a securely provisioned agent secret."
           - "Attach an appropriately scoped IAM role; do not configure static AWS access keys."
           - "Log out and back in (or restart the agent service) for Docker group membership to take effect."
