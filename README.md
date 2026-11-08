@@ -298,7 +298,7 @@ The Application tracks the `gitops` branch and recursively reads the `kubernetes
 Before syncing the application, verify that:
 
 - EBS CSI is installed and healthy, and `gp3-csi` can provision EBS volumes.
-- AWS Load Balancer Controller is installed with its recommended IAM permissions and service account. The `frontend-ingress.yaml` resource depends on this controller to create the Application Load Balancer. Follow the [AWS Load Balancer Controller installation guide](https://docs.aws.amazon.com/eks/latest/userguide/lbc-helm.html).
+- AWS Load Balancer Controller is installed with its recommended IAM permissions and service account. The `frontend-ingress.yaml` resource depends on this controller to create the Application Load Balancer. Follow the [AWS Load Balancer Controller installation guide](https://docs.aws.amazon.com/eks/latest/userguide/lbc-manifest.html).
 - Public subnets have the `kubernetes.io/role/elb=1` discovery tag.
 - The application namespace and required credentials are available.
 
