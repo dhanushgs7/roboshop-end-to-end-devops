@@ -30,9 +30,12 @@ jobs:
       - name: Install required Ansible collections
         run: ansible-galaxy collection install -r ansible/requirements.yml
 
-      - name: Check playbook syntax
+      - name: Validate example inventory and group variables
+        run: ansible-inventory -i ansible/inventory.ini.example --list > /dev/null
+
+      - name: Check playbook syntax against the example inventory
         run: |
           for file in ansible/playbooks/*.yaml; do
             [ -f "$file" ] || continue
-            ansible-playbook --syntax-check "$file"
+            ansible-playbook -i ansible/inventory.ini.example --syntax-check "$file"
           done

@@ -1,5 +1,53 @@
-# Copy to inventory.ini and replace the example hosts with your private hostnames/IPs.
-# Keep inventory.ini out of version control.
+# Copy to inventory.ini and replace every RFC 5737 documentation address with your private host IP.
+# Keep inventory.ini out of version control. Supply SSH keys with --private-key.
+[local]
+localhost ansible_connection=local
+
+[mongodb]
+mongodb ansible_host=192.0.2.10
+
+[redis]
+redis ansible_host=192.0.2.11
+
+[mysql]
+mysql ansible_host=192.0.2.12
+
+[rabbitmq]
+rabbitmq ansible_host=192.0.2.13
+
+[catalogue]
+catalogue ansible_host=192.0.2.14
+
+[user]
+user ansible_host=192.0.2.15
+
+[cart]
+cart ansible_host=192.0.2.16
+
+[shipping]
+shipping ansible_host=192.0.2.17
+
+[payment]
+payment ansible_host=192.0.2.18
+
+[frontend]
+frontend ansible_host=192.0.2.19
+
+[roboshop:children]
+mongodb
+redis
+mysql
+rabbitmq
+catalogue
+user
+cart
+shipping
+payment
+frontend
+
+[roboshop:vars]
+ansible_user=ec2-user
+
 [jenkins_controller]
 jenkins-controller.example.internal ansible_user=ubuntu
 

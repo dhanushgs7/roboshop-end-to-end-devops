@@ -1,5 +1,15 @@
-# Override service endpoints in inventory or environment-specific group_vars.
-# Do not put trainer domains, credentials, or account-specific values in this shared file.
-# Credentials are read from the environment at runtime and are never committed.
+# Service endpoints are resolved from the host groups in inventory.ini.
+# Credentials are read from the operator's environment and are never committed.
+MONGODB_HOST: "{{ hostvars[groups['mongodb'][0]].ansible_host | default(groups['mongodb'][0]) }}"
+REDIS_HOST: "{{ hostvars[groups['redis'][0]].ansible_host | default(groups['redis'][0]) }}"
+MYSQL_HOST: "{{ hostvars[groups['mysql'][0]].ansible_host | default(groups['mysql'][0]) }}"
+RABBITMQ_HOST: "{{ hostvars[groups['rabbitmq'][0]].ansible_host | default(groups['rabbitmq'][0]) }}"
+CATALOGUE_HOST: "{{ hostvars[groups['catalogue'][0]].ansible_host | default(groups['catalogue'][0]) }}"
+USER_HOST: "{{ hostvars[groups['user'][0]].ansible_host | default(groups['user'][0]) }}"
+CART_HOST: "{{ hostvars[groups['cart'][0]].ansible_host | default(groups['cart'][0]) }}"
+SHIPPING_HOST: "{{ hostvars[groups['shipping'][0]].ansible_host | default(groups['shipping'][0]) }}"
+PAYMENT_HOST: "{{ hostvars[groups['payment'][0]].ansible_host | default(groups['payment'][0]) }}"
+
 RABBITMQ_PASSWORD: "{{ lookup('ansible.builtin.env', 'RABBITMQ_PASSWORD') }}"
 MYSQL_ROOT_PASSWORD: "{{ lookup('ansible.builtin.env', 'MYSQL_ROOT_PASSWORD') }}"
+DB_PASSWORD: "{{ lookup('ansible.builtin.env', 'DB_PASSWORD') }}"

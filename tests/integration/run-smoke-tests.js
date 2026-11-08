@@ -80,6 +80,17 @@ async function main() {
       });
     });
 
+    await check('Shipping MySQL schema and JPA tables are initialized', async () => {
+      await waitFor('Shipping database schema', async () => {
+        const count = await request(`${urls.shipping}/count`);
+        const codes = await request(`${urls.shipping}/codes`);
+        if (count.status !== 200 || codes.status !== 200) return false;
+        assert.match(String(count.body), /^\\d+$/);
+        assert.ok(Array.isArray(codes.body), 'Country-code repository did not return an array');
+        return true;
+      });
+    });
+
     await check('Payment health endpoint', async () => {
       await waitFor('Payment health', async () => {
         const r = await request(`${urls.payment}/health`);
@@ -145,17 +156,6 @@ async function main() {
       );
       assert.equal(r.status, 400);
       assert.match(String(r.body), /cart not valid/i);
-    });
-
-    await check('Cart and Payment expose Prometheus metrics', async () => {
-      const [cartMetrics, paymentMetrics] = await Promise.all([
-        request(`${urls.cart}/metrics`),
-        request(`${urls.payment}/metrics`),
-      ]);
-      assert.equal(cartMetrics.status, 200);
-      assert.match(cartMetrics.raw, /items_added/);
-      assert.equal(paymentMetrics.status, 200);
-      assert.match(paymentMetrics.raw, /sold_count/);
     });
 
     if (process.env.RUN_FULL_CHECKOUT === 'true') {

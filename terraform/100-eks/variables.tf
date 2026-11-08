@@ -67,22 +67,23 @@ variable "node_instance_types" {
 }
 
 variable "desired_nodes" {
-  type    = number
-  default = 1
+  description = "Initial worker count; two small nodes provide pod and memory capacity for the 11-service stack"
+  type        = number
+  default     = 2
 }
 
 variable "min_nodes" {
   type    = number
-  default = 1
+  default = 2
 }
 
 variable "max_nodes" {
   type    = number
-  default = 2
+  default = 3
 }
 
 variable "deployment_principal_arn" {
-  description = "Optional IAM role or user ARN used by Jenkins to deploy into the roboshop and monitoring namespaces"
+  description = "Optional IAM role or user ARN used by Jenkins to deploy into the roboshop namespace"
   type        = string
   default     = null
 

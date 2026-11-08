@@ -5,7 +5,7 @@ public class Calculator {
     private double latitude = 0;
     private double longitude = 0;
 
-    Calculator(double latitdue, double longitude) {
+    Calculator(double latitude, double longitude) {
         this.latitude = latitude;
         this.longitude = longitude;
     }
@@ -33,7 +33,7 @@ public class Calculator {
 
         double a = Math.sin(diffLatR / 2.0) * Math.sin(diffLatR / 2.0)
             + Math.cos(latitudeR) * Math.cos(targetLatitudeR)
-            * Math.sin(diffLongR / 2.0) * Math.sin(diffLongR);
+            * Math.sin(diffLongR / 2.0) * Math.sin(diffLongR / 2.0);
 
         double c = 2.0 * Math.atan2(Math.sqrt(a), Math.sqrt(1.0 - a));
 

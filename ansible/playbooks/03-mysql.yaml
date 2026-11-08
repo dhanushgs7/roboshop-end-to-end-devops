@@ -3,6 +3,12 @@
   hosts: mysql
   become: yes
   tasks:
+    - name: Require the MySQL root password from the operator environment
+      ansible.builtin.assert:
+        that:
+          - MYSQL_ROOT_PASSWORD | default('') | length > 0
+          - DB_PASSWORD | default('') | length > 0
+        fail_msg: "Export MYSQL_ROOT_PASSWORD before running the MySQL playbook."
     - name: install mysql server
       package:
         name: mysql-server
@@ -16,4 +22,36 @@
 
     - name: setup root password
       command: mysql_secure_installation --set-root-pass "{{ MYSQL_ROOT_PASSWORD }}"
+      no_log: true
+
+    - name: install Python MySQL driver for local database administration
+      package:
+        name:
+          - python3
+          - python3-pip
+        state: present
+
+    - name: install PyMySQL
+      pip:
+        name: PyMySQL
+        executable: pip3
+
+    - name: create the RoboShop cities database
+      community.mysql.mysql_db:
+        name: cities
+        state: present
+        login_user: root
+        login_password: "{{ MYSQL_ROOT_PASSWORD }}"
+        login_unix_socket: /var/lib/mysql/mysql.sock
+
+    - name: create the Shipping application database user
+      community.mysql.mysql_user:
+        name: shipping
+        host: "%"
+        password: "{{ DB_PASSWORD }}"
+        priv: "cities.*:ALL"
+        state: present
+        login_user: root
+        login_password: "{{ MYSQL_ROOT_PASSWORD }}"
+        login_unix_socket: /var/lib/mysql/mysql.sock
       no_log: true

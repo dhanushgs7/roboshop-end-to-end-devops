@@ -4,7 +4,6 @@ on:
   push:
     paths:
       - "docker/**"
-      - "monitoring/kubernetes/**"
       - ".github/workflows/docker-validation.yml"
   pull_request:
     paths:
@@ -33,10 +32,7 @@ jobs:
         working-directory: docker
         run: docker compose --env-file .env.example build --pull
 
-      - name: Build hardened Grafana image
-        run: docker build -t joindevops/grafana:v1 ./docker/grafana
-
-      - name: Scan all application and monitoring images with Trivy
+      - name: Scan application images with Trivy
         env:
           IMAGE_TAG: joindevops
         run: |
@@ -70,9 +66,6 @@ jobs:
           for service in catalogue user cart payment shipping dispatch frontend mongodb mysql; do
             scan_image "${IMAGE_TAG}/${service}:v1" "${service}"
           done
-
-          scan_image "prom/prometheus:v3.15.1" "prometheus"
-          scan_image "joindevops/grafana:v1" "grafana"
 
           if [ "${scan_failed}" -ne 0 ]; then
             echo "::error::One or more images have fixable HIGH/CRITICAL findings or could not be scanned."

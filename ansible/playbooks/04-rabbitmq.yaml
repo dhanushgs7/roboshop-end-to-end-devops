@@ -2,6 +2,11 @@
   hosts: rabbitmq
   become: yes
   tasks:
+  - name: Require the RabbitMQ password from the operator environment
+    ansible.builtin.assert:
+      that:
+        - RABBITMQ_PASSWORD | default('') | length > 0
+      fail_msg: "Export RABBITMQ_PASSWORD before running the RabbitMQ playbook."
   - name: copy rabbitmq repo
     copy:
       src: rabbitmq.repo

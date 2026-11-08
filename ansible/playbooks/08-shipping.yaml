@@ -2,6 +2,13 @@
   hosts: shipping
   become: yes
   tasks:
+  - name: Require shipping database credentials and endpoint
+    ansible.builtin.assert:
+      that:
+        - MYSQL_HOST | default('') | length > 0
+        - MYSQL_ROOT_PASSWORD | default('') | length > 0
+        - DB_PASSWORD | default('') | length > 0
+      fail_msg: "Set MYSQL_HOST, MYSQL_ROOT_PASSWORD and DB_PASSWORD in inventory/environment before deploying Shipping."
   - name: Require an operator-supplied RoboShop artifact base URL
     ansible.builtin.assert:
       that:
@@ -14,6 +21,8 @@
     loop:
     - maven
     - mysql
+    - python3
+    - python3-pip
   - name: create roboshop system user
     user:
       name: roboshop
@@ -57,18 +66,38 @@
   - name: install python dependencies
     pip:
       name: PyMySQL
-      executable: pip3.9
-  - name: load mysql data
+      executable: pip3
+  - name: ensure database initialization directory exists
+    file:
+      path: /app/db
+      state: directory
+      owner: root
+      group: root
+      mode: "0755"
+  - name: copy the shared database schema from the repository
+    copy:
+      src: "{{ playbook_dir }}/../../docker/mysql/db/00-schema.sql"
+      dest: /app/db/00-schema.sql
+      owner: root
+      group: root
+      mode: "0644"
+  - name: copy the shared city master data from the repository
+    copy:
+      src: "{{ playbook_dir }}/../../docker/mysql/db/master-data.sql"
+      dest: /app/db/master-data.sql
+      owner: root
+      group: root
+      mode: "0644"
+  - name: import schema and city master data into MySQL
     community.mysql.mysql_db:
       state: import
-      name: all
-      login_user: root
-      login_password: "{{ MYSQL_ROOT_PASSWORD }}"
+      name: cities
+      login_user: shipping
+      login_password: "{{ DB_PASSWORD }}"
       login_host: "{{ MYSQL_HOST }}"
       target: "{{ item }}"
     loop:
-    - /app/db/schema.sql
-    - /app/db/app-user.sql
+    - /app/db/00-schema.sql
     - /app/db/master-data.sql
   - name: deamon reload
     systemd_service:
