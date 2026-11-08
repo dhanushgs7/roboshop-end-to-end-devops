@@ -225,6 +225,8 @@ ASKPASS_EOF
                         if [ -n "$REMOTE_REF" ]; then
                           git fetch "$GITOPS_REPOSITORY_URL" "refs/heads/$GITOPS_BRANCH"
                           git checkout -B "$GITOPS_BRANCH" FETCH_HEAD
+                          # Bring the latest application and manifest changes from the build into GitOps.
+                          git merge --no-edit "$GIT_COMMIT"
                         else
                           # First publication starts from the exact application commit built by this pipeline.
                           git checkout -B "$GITOPS_BRANCH" "$GIT_COMMIT"
