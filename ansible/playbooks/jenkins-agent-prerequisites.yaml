@@ -92,7 +92,7 @@
     - name: Report remaining agent bootstrap requirements
       ansible.builtin.debug:
         msg:
-          - "Install AWS CLI v2, kubectl, and Trivy using their official vendor instructions."
+          - "Install AWS CLI v2 and Trivy using their official vendor instructions."
           - "Register this machine with the Jenkins controller using a securely provisioned agent secret."
           - "Attach an appropriately scoped IAM role; do not configure static AWS access keys."
           - "Log out and back in (or restart the agent service) for Docker group membership to take effect."
