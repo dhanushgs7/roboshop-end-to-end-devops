@@ -4,10 +4,12 @@ on:
   push:
     paths:
       - "jenkins/**"
+      - "kubernetes/argocd-application.yaml"
       - ".github/workflows/jenkins-validation.yml"
   pull_request:
     paths:
       - "jenkins/**"
+      - "kubernetes/argocd-application.yaml"
       - ".github/workflows/jenkins-validation.yml"
 
 permissions:
@@ -15,7 +17,7 @@ permissions:
 
 jobs:
   validate:
-    name: Check Jenkinsfile syntax and safety gates
+    name: Check Jenkins pipeline and GitOps safety gates
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -36,12 +38,17 @@ jobs:
         run: |
           groovy -e 'new GroovyShell().parse(new File("jenkins/Jenkinsfile")); println "Jenkinsfile Groovy syntax is valid."'
 
-      - name: Verify deployment safety gates
+      - name: Verify CI and GitOps deployment safety gates
         run: |
           set -eu
           grep -q "PUSH_IMAGES" jenkins/Jenkinsfile
-          grep -q "DEPLOY_TO_EKS" jenkins/Jenkinsfile
-          grep -q 'DEPLOY_TO_EKS requires PUSH_IMAGES=true' jenkins/Jenkinsfile
-          ! grep -qE 'terraform[[:space:]]+apply' jenkins/Jenkinsfile
-          ! grep -qE '(^|[[:space:]])helm([[:space:]]|$)' jenkins/Jenkinsfile
-          echo "Opt-in image push/deployment gates are present; Terraform apply and Helm are absent."
+          grep -q "UPDATE_GITOPS" jenkins/Jenkinsfile
+          grep -q "UPDATE_GITOPS requires PUSH_IMAGES=true" jenkins/Jenkinsfile
+          grep -q "github-gitops-token" jenkins/Jenkinsfile
+          grep -q "GITOPS_BRANCH" jenkins/Jenkinsfile
+          grep -q "git push" jenkins/Jenkinsfile
+          ! grep -qE 'kubectl[[:space:]]+apply|eks[[:space:]]+update-kubeconfig|terraform[[:space:]]+apply' jenkins/Jenkinsfile
+          grep -q "targetRevision: gitops" kubernetes/argocd-application.yaml
+          grep -q "selfHeal: true" kubernetes/argocd-application.yaml
+          grep -q "prune: true" kubernetes/argocd-application.yaml
+          echo "Jenkins publishes GitOps state; Argo CD owns EKS reconciliation."
