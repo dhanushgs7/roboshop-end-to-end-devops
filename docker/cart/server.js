@@ -74,7 +74,7 @@ app.get('/metrics', (req, res) => {
         '# TYPE roboshop_cart_items_added_total counter',
         'roboshop_cart_items_added_total ' + itemsAdded,
         ''
-    ].join('\\n'));
+    ].join('\n'));
 });
 
 // get cart with id
