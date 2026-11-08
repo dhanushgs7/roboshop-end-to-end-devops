@@ -486,7 +486,9 @@ spec:
         - name: node-exporter
           image: quay.io/prometheus/node-exporter:v1.8.2
           args:
-            - --path.rootfs=/host
+            - --path.rootfs=/host/root
+            - --path.procfs=/host/proc
+            - --path.sysfs=/host/sys
             - --web.listen-address=:9100
           ports:
             - name: metrics
@@ -505,13 +507,27 @@ spec:
             readOnlyRootFilesystem: true
           volumeMounts:
             - name: root
-              mountPath: /host
+              mountPath: /host/root
               readOnly: true
               mountPropagation: HostToContainer
+            - name: proc
+              mountPath: /host/proc
+              readOnly: true
+            - name: sys
+              mountPath: /host/sys
+              readOnly: true
       volumes:
         - name: root
           hostPath:
             path: /
+            type: Directory
+        - name: proc
+          hostPath:
+            path: /proc
+            type: Directory
+        - name: sys
+          hostPath:
+            path: /sys
             type: Directory
 
 ---
