@@ -81,14 +81,3 @@ variable "max_nodes" {
   type    = number
   default = 3
 }
-
-variable "deployment_principal_arn" {
-  description = "Optional IAM role or user ARN used by Jenkins to deploy into the roboshop namespace"
-  type        = string
-  default     = null
-
-  validation {
-    condition     = var.deployment_principal_arn == null || can(regex("^arn:aws:iam::[0-9]{12}:(role|user)/", var.deployment_principal_arn))
-    error_message = "deployment_principal_arn must be an IAM role or user ARN."
-  }
-}
