@@ -4,10 +4,12 @@ on:
   push:
     paths:
       - "kubernetes/**/*.yaml"
+      - "monitoring/kubernetes/**/*.yaml"
       - ".github/workflows/kubernetes-validation.yml"
   pull_request:
     paths:
       - "kubernetes/**/*.yaml"
+      - "monitoring/kubernetes/**/*.yaml"
       - ".github/workflows/kubernetes-validation.yml"
 
   workflow_dispatch:
