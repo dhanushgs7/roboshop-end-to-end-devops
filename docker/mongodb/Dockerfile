@@ -12,6 +12,7 @@ COPY --from=gosu-builder /gosu /usr/local/bin/gosu
 
 RUN apt-get update \
     && apt-get upgrade -y \
+    && apt-get purge -y --auto-remove mongodb-database-tools \
     && rm -rf /var/lib/apt/lists/*
 
 COPY *.js /docker-entrypoint-initdb.d/
