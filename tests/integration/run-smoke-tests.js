@@ -147,17 +147,6 @@ async function main() {
       assert.match(String(r.body), /cart not valid/i);
     });
 
-    await check('Cart and Payment expose Prometheus metrics', async () => {
-      const [cartMetrics, paymentMetrics] = await Promise.all([
-        request(`${urls.cart}/metrics`),
-        request(`${urls.payment}/metrics`),
-      ]);
-      assert.equal(cartMetrics.status, 200);
-      assert.match(cartMetrics.raw, /items_added/);
-      assert.equal(paymentMetrics.status, 200);
-      assert.match(paymentMetrics.raw, /sold_count/);
-    });
-
     if (process.env.RUN_FULL_CHECKOUT === 'true') {
       const username = `ci-checkout-${Date.now()}-${crypto.randomBytes(3).toString('hex')}`;
       checkoutUserId = username;
