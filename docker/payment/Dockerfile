@@ -45,6 +45,10 @@ COPY --from=builder /opt/venv /opt/venv
 COPY payment.ini .
 COPY *.py .
 
+RUN groupadd --system roboshop \
+    && useradd --system --gid roboshop --home-dir /app --no-create-home --shell /usr/sbin/nologin roboshop \
+    && chown -R roboshop:roboshop /app
+
 ENV PATH="/opt/venv/bin:${PATH}" \
     PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
@@ -58,3 +62,5 @@ RUN set -eux; \
 
 EXPOSE 8080
 CMD ["uwsgi", "--ini", "payment.ini"]
+
+USER roboshop
