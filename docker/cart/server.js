@@ -13,7 +13,6 @@ const bodyParser = require('body-parser');
 const express = require('express');
 const pino = require('pino');
 const expPino = require('express-pino-logger');
-// Prometheus
 const { mergeList, calcTotal, calcTax } = require('./cart-utils');
 
 
