@@ -80,6 +80,17 @@ async function main() {
       });
     });
 
+    await check('Shipping MySQL schema and JPA tables are initialized', async () => {
+      await waitFor('Shipping database schema', async () => {
+        const count = await request(`${urls.shipping}/count`);
+        const codes = await request(`${urls.shipping}/codes`);
+        if (count.status !== 200 || codes.status !== 200) return false;
+        assert.match(String(count.body), /^\\d+$/);
+        assert.ok(Array.isArray(codes.body), 'Country-code repository did not return an array');
+        return true;
+      });
+    });
+
     await check('Payment health endpoint', async () => {
       await waitFor('Payment health', async () => {
         const r = await request(`${urls.payment}/health`);
