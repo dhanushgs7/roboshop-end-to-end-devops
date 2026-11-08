@@ -12,6 +12,8 @@ COPY --from=gosu-builder /gosu /usr/local/bin/gosu
 
 RUN apt-get update \
     && apt-get upgrade -y \
+    && rm -f /usr/bin/bsondump /usr/bin/mongodump /usr/bin/mongoexport /usr/bin/mongofiles \
+              /usr/bin/mongoimport /usr/bin/mongorestore /usr/bin/mongostat /usr/bin/mongotop \
     && rm -rf /var/lib/apt/lists/*
 
 COPY *.js /docker-entrypoint-initdb.d/

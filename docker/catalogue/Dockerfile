@@ -8,6 +8,9 @@ RUN apt-get update \
 COPY package.json .
 COPY *.js .
 RUN npm install --omit=dev --no-audit --no-fund
+# npm is a build-time dependency manager; remove its bundled vulnerable dependency tree from runtime images.
+RUN rm -rf /usr/local/lib/node_modules/npm \
+    && rm -f /usr/local/bin/npm /usr/local/bin/npx
 ENV MONGO="true" \
     MONGO_URL="mongodb://mongodb:27017/catalogue"
 CMD ["node", "server.js"]

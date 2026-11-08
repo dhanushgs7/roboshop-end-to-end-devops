@@ -85,7 +85,7 @@ async function main() {
         const count = await request(`${urls.shipping}/count`);
         const codes = await request(`${urls.shipping}/codes`);
         if (count.status !== 200 || codes.status !== 200) return false;
-        assert.match(String(count.body), /^\\d+$/);
+        assert.match(String(count.body), /^\d+$/);
         assert.ok(Array.isArray(codes.body), 'Country-code repository did not return an array');
         return true;
       });
